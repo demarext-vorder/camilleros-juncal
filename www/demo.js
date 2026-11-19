@@ -11,7 +11,7 @@ const Demo = (() => {
     seq: 1,
     usuarios: [
       { id: 1, usuario: 'conmutador', nombre: 'Conmutador', rol: 'conmutador', en_turno: 0 },
-      { id: 2, usuario: 'carlos', nombre: 'Carlos Méndez', rol: 'camillero', en_turno: 1 },
+      { id: 2, usuario: 'elias', nombre: 'Elias Ferreira', rol: 'camillero', en_turno: 1 },
       { id: 3, usuario: 'lucia', nombre: 'Lucía Fernández', rol: 'camillero', en_turno: 1 },
       { id: 4, usuario: 'marcos', nombre: 'Marcos Giménez', rol: 'camillero', en_turno: 0 },
     ],

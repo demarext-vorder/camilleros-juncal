@@ -187,7 +187,7 @@ function render(soft) {
   if (rol === 'camillero') vistaCamillero(app); else vistaDespacho(app);
 }
 function header(sub) {
-  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span>${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
+  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
   <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>${S.demo ? `<div class="demo-bar">🎬 MODO DEMO · datos de ejemplo <button id="demo-out">Salir</button></div>` : ''}`;
 }
 function bindMenu() {
@@ -251,7 +251,7 @@ async function iniciarDemo(rol, opts = {}) {
   S.demo = true; S.intro = false; S.tab = null; S.finalizado = null; S.nota = ''; S.scanErr = '';
   S.alertados = new Set(); S.form = { pac: null, destino: '', prioridad: 'normal', req: [], nota: '', origen: '' };
   if (!opts.keep) Demo.reset(); else Demo.load();
-  const r = await Demo.api('/login', 'POST', { usuario: rol === 'camillero' ? 'carlos' : 'conmutador' });
+  const r = await Demo.api('/login', 'POST', { usuario: rol === 'camillero' ? 'elias' : 'conmutador' });
   S.token = r.token; S.user = r.usuario;
   S.lugares = []; await iniciarSesion();
   if (!opts.nobots) Demo.bots(rol);
@@ -300,7 +300,7 @@ function cardTraslado(t, opts = {}) {
     <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>
     <div class="pname">${esc(t.paciente)}</div><div class="meta">DNI ${esc(t.dni)} · Cama ${esc(t.cama || '—')}</div>
     <div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>
-    <div class="chips">${flags}</div>${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
+    <div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
 }
 function vistaCamillero(app) {
   const act = miActivo();
@@ -315,7 +315,7 @@ function vistaCamillero(app) {
   } else if (S.tab === 'mio') body = vistaMiTraslado(act);
   else body = S.hist.length ? S.hist.map((t) => `<div class="card"><div class="row"><b>${esc(t.paciente)}</b><span class="sp"></span><span class="meta">${hora(t.completado_en)}</span></div><div class="meta">${esc(t.origen || '')} → <b>${esc(t.destino)}</b></div>${t.nota_final ? `<div class="meta">📝 ${esc(t.nota_final)}</div>` : ''}<div class="meta">Duración: ${Math.max(1, Math.round((new Date(t.completado_en) - new Date(t.aceptado_en)) / 60000))} min</div></div>`).join('')
     : '<div class="empty"><div class="big">🗂️</div>Todavía no hiciste traslados.</div>';
-  app.innerHTML = `${header(S.user.nombre)}<div class="wrap">${body}</div>
+  app.innerHTML = `${header('👷 ' + S.user.nombre)}<div class="wrap">${body}</div>
     <nav class="tabs"><button data-t="pend" class="${S.tab === 'pend' ? 'on' : ''}"><span>📋</span>Pendientes${pend.length && !act ? `<i class="bd">${pend.length}</i>` : ''}</button>
     <button data-t="mio" class="${S.tab === 'mio' ? 'on' : ''}"><span>🛏️</span>Mi traslado${act ? '<i class="bd">1</i>' : ''}</button>
     <button data-t="hist" class="${S.tab === 'hist' ? 'on' : ''}"><span>🕘</span>Historial</button></nav>`;
@@ -327,7 +327,7 @@ function vistaCamillero(app) {
   bindMio(act);
 }
 function vistaMiTraslado(t) {
-  if (S.finalizado) { const f = S.finalizado; return `<div class="card done-card"><div class="ck">✓</div><h2 style="margin:0">Traslado finalizado</h2><p class="meta">${esc(f.paciente)} entregado en <b>${esc(f.destino)}</b></p><p class="meta">Duración: ${Math.max(1, Math.round((new Date(f.completado_en) - new Date(f.aceptado_en)) / 60000))} min</p><button class="btn" id="fin-ok">Listo</button></div>`; }
+  if (S.finalizado) { const f = S.finalizado; return `<div class="card done-card"><div class="ck">✓</div><h2 style="margin:0">Traslado finalizado</h2><p class="meta">${esc(f.paciente)} entregado en <b>${esc(f.destino)}</b></p><p class="meta">Responsable: <b>${esc(f.camillero || S.user.nombre)}</b> · Duración: ${Math.max(1, Math.round((new Date(f.completado_en) - new Date(f.aceptado_en)) / 60000))} min</p><button class="btn" id="fin-ok">Listo</button></div>`; }
   if (!t) return '<div class="empty"><div class="big">✅</div><b>No tenés un traslado en curso</b><div>Aceptá uno desde “Pendientes”.</div></div>';
   const paso = t.estado === 'ACEPTADA' ? 1 : 2;
   const steps = `<div class="steps"><div class="done"><i></i>Aceptado</div><div class="${paso === 1 ? 'cur' : 'done'}"><i></i>Paciente</div><div class="${paso === 2 ? 'cur' : ''}"><i></i>Destino</div></div>`;
@@ -372,7 +372,7 @@ function vistaDespacho(app) {
   const activos = S.traslados.filter((t) => ['EMITIDA', 'ACEPTADA', 'EN_TRASLADO'].includes(t.estado));
   const tabs = [['nuevo', '➕', 'Nuevo'], ['curso', '🛏️', 'En curso'], ['equipo', '👥', 'Equipo']].concat(admin ? [['admin', '⚙️', 'Admin']] : []);
   let body = S.tab === 'nuevo' ? vistaNuevo() : S.tab === 'curso' ? vistaCurso(activos) : S.tab === 'equipo' ? vistaEquipo() : vistaAdmin();
-  app.innerHTML = `${header(S.user.rol === 'admin' ? 'Administración' : 'Conmutador')}
+  app.innerHTML = `${header((S.user.rol === 'admin' ? '⚙️ ' : '☎️ ') + S.user.nombre)}
     <nav class="tabs">${tabs.map(([k, i, n]) => `<button data-t="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${n}${k === 'curso' && activos.length ? `<i class="bd">${activos.length}</i>` : ''}</button>`).join('')}</nav>
     <div class="wrap wide">${body}</div>`;
   app.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => { S.tab = b.dataset.t; render(); }));
@@ -421,7 +421,7 @@ function bindNuevo() {
 }
 function vistaCurso(activos) {
   const fin = S.traslados.filter((t) => ['COMPLETADA', 'CANCELADA'].includes(t.estado));
-  const tarj = (t) => cardTraslado(t, { extra: `<div class="row" style="margin-top:8px"><span class="meta">👷 ${t.camillero ? esc(t.camillero) : '<b style="color:#8a5a00">Esperando camillero…</b>'}${t.aceptado_en ? ' · aceptó ' + hora(t.aceptado_en) : ''}</span><span class="sp"></span>
+  const tarj = (t) => cardTraslado(t, { extra: `<div class="row" style="margin-top:8px"><span class="meta">${t.camillero ? '' : '<b style="color:#8a5a00">👷 Esperando camillero…</b>'}${t.aceptado_en ? 'Aceptó ' + hora(t.aceptado_en) : ''}</span><span class="sp"></span>
     <button class="btn sm ghost" data-ev="${t.id}">Detalle</button>${['EMITIDA', 'ACEPTADA', 'EN_TRASLADO'].includes(t.estado) ? `<button class="btn sm red" data-cn="${t.id}">Cancelar</button>` : ''}</div>` });
   return `${tiles()}<h3 style="margin:4px 0 10px">En curso (${activos.length})</h3><div class="grid2"><div>${activos.filter((_, i) => i % 2 === 0).map(tarj).join('')}</div><div>${activos.filter((_, i) => i % 2).map(tarj).join('')}</div></div>
     ${activos.length ? '' : '<div class="empty"><div class="big">☕</div>No hay traslados en curso.</div>'}
