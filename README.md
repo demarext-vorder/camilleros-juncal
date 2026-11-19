@@ -1,4 +1,4 @@
-# CamiJuncal · Traslados de pacientes (Sanatorio Juncal)
+# Camilleros Juncal · Traslados de pacientes (Sanatorio Juncal)
 
 App Android para camilleros + servidor para el conmutador.
 
@@ -64,6 +64,6 @@ Tres formas de cargarlos: sincronización por `INGRESOS_URL`, envío desde Ingre
 La pulsera se reconoce si el código leído coincide con `pulsera`, `dni` o `historia` (también si el QR contiene alguno de esos valores dentro de un texto).
 
 ## Notas importantes
-- **Avisos con el celular bloqueado:** la app mantiene un servicio en segundo plano mientras el camillero está “En turno”. En el celular conviene: *Ajustes → Apps → CamiJuncal → Batería → Sin restricciones*, y permitir notificaciones. Si en algún modelo se cortan, la mejora es sumar notificaciones push (Firebase).
+- **Avisos con el celular bloqueado:** la app mantiene un servicio en segundo plano mientras el camillero está “En turno”. En el celular conviene: *Ajustes → Apps → Camilleros Juncal → Batería → Sin restricciones*, y permitir notificaciones. Si en algún modelo se cortan, la mejora es sumar notificaciones push (Firebase).
 - Seguridad: usar HTTPS (proxy inverso) si el servidor sale a internet. En red interna `http` funciona.
 - El APK es de tipo *debug* (instalable directo). Para publicar en Play Store hay que firmarlo con keystore propia.

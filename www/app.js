@@ -1,5 +1,5 @@
 'use strict';
-/* CamiJuncal - app de camilleros. JS puro, sin dependencias. */
+/* Camilleros Juncal - app de camilleros. JS puro, sin dependencias. */
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -59,7 +59,7 @@ const Nat = {
       const FS = plug('ForegroundService');
       if (on) {
         try { await FS.requestPermissions(); } catch {}
-        await FS.startForegroundService({ id: 1001, title: 'CamiJuncal · En turno', body: 'Esperando traslados del conmutador', smallIcon: 'ic_stat_camilleros', serviceType: 1 });
+        await FS.startForegroundService({ id: 1001, title: 'Camilleros Juncal · En turno', body: 'Esperando traslados del conmutador', smallIcon: 'ic_stat_camilleros', serviceType: 1 });
       } else await FS.stopForegroundService();
     } catch (e) { console.warn('fgs', e); }
   },
@@ -187,7 +187,7 @@ function render(soft) {
   if (rol === 'camillero') vistaCamillero(app); else vistaDespacho(app);
 }
 function header(sub) {
-  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>CamiJuncal</b><span>${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
+  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span>${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
   <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>${S.demo ? `<div class="demo-bar">🎬 MODO DEMO · datos de ejemplo <button id="demo-out">Salir</button></div>` : ''}`;
 }
 function bindMenu() {
@@ -210,7 +210,7 @@ function cambiarPin() {
 
 /* ----- Servidor (solo APK) ----- */
 function vistaServidor(app) {
-  app.innerHTML = `<div class="login"><div class="logo"><img src="logo.svg" alt=""><h1>CamiJuncal</h1><p>Primera configuración</p></div>
+  app.innerHTML = `<div class="login"><div class="logo"><img src="logo.svg" alt=""><h1>Camilleros Juncal</h1><p>Primera configuración</p></div>
     <label>Dirección del servidor de traslados</label><input id="srv" inputmode="url" placeholder="http://192.168.1.50:3000" value="${esc(S.server)}">
     <p class="hint">La da el área de sistemas. Ejemplo: http://192.168.1.50:3000 o https://traslados.sanatorio.com</p><div style="height:10px"></div>
     <div id="e"></div><button class="btn" id="go">Guardar y continuar</button>
@@ -225,7 +225,7 @@ function vistaServidor(app) {
 
 /* ----- Login ----- */
 function vistaLogin(app) {
-  app.innerHTML = `<div class="login"><div class="logo"><img src="logo.svg" alt=""><h1>CamiJuncal</h1><p>Traslados de pacientes · Sanatorio Juncal</p></div>
+  app.innerHTML = `<div class="login"><div class="logo"><img src="logo.svg" alt=""><h1>Camilleros Juncal</h1><p>Traslados de pacientes · Sanatorio Juncal</p></div>
     <label>Usuario</label><input id="u" autocapitalize="none" autocomplete="username" value="${esc(LS.get('cj_user') || '')}">
     <label>PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
     <div id="e"></div><div style="height:6px"></div><button class="btn big" id="go">Ingresar</button>
@@ -269,7 +269,7 @@ function elegirDemo() {
 
 /* ----- Introducción ----- */
 const SLIDES = [
-  { ico: null, t: 'Traslados de pacientes, sin llamadas ni papeles', d: 'CamiJuncal conecta al conmutador con los camilleros en tiempo real y deja registro de cada traslado.' },
+  { ico: null, t: 'Traslados de pacientes, sin llamadas ni papeles', d: 'Camilleros Juncal conecta al conmutador con los camilleros en tiempo real y deja registro de cada traslado.' },
   { ico: '☎️ → 📣 → 👷', t: 'El conmutador emite, los camilleros reciben', d: 'La orden llega al instante a todos los camilleros en turno, con sonido y vibración. El primero que toca “Me hago cargo” se queda el traslado.' },
   { ico: '🧾 → 📷 → ✅', t: 'Primero, verificá al paciente', d: 'Escaneá la pulsera (código de barras o QR). Si no es el paciente de la orden, la app te frena antes de que lo retires.' },
   { ico: '📍 → 📷 → 📝', t: 'Entregá y dejá tu aviso', d: 'Escaneá el QR del lugar de destino, sumá una nota sobre el paciente y finalizá. Queda todo registrado con horarios.' },

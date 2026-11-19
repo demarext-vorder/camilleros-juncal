@@ -38,17 +38,17 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Renombrar APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk CamiJuncal.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Camilleros-Juncal.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: CamiJuncal-APK
-          path: CamiJuncal.apk
+          name: Camilleros-Juncal-APK
+          path: Camilleros-Juncal.apk
 
       - name: Publicar en Releases (para bajar el APK desde el celular)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "apk-${{ github.run_number }}" CamiJuncal.apk \
-            --title "CamiJuncal 1.0.${{ github.run_number }}" \
+          gh release create "apk-${{ github.run_number }}" Camilleros-Juncal.apk \
+            --title "Camilleros Juncal 1.0.${{ github.run_number }}" \
             --notes "APK instalable (compilación #${{ github.run_number }})"
