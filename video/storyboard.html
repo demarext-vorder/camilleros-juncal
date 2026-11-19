@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>CamiJuncal · video demo</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#071E33;font-family:system-ui,"Segoe UI",Roboto,sans-serif;color:#fff}
+#stage{position:relative;width:1280px;height:720px;background:radial-gradient(900px 600px at 20% 10%,#0E7C86 0,#0A3D62 55%,#071E33 100%);overflow:hidden}
+.bubble{position:absolute;border-radius:50%;background:#ffffff0d;animation:bub 14s ease-in-out infinite alternate}
+@keyframes bub{to{transform:translate(60px,-40px) scale(1.15)}}
+.dev{position:absolute;left:0;top:0;transform-origin:0 0;transition:transform 1s cubic-bezier(.6,.05,.2,1),opacity .8s,filter .8s;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 30px 80px #0008}
+.dev iframe{border:0;display:block;background:#F1F5F8}
+#laptop{width:1000px;height:640px;border-radius:14px}
+#phone{width:390px;height:844px;border-radius:38px;border:10px solid #0b1620;width:410px;height:864px}
+#phone iframe{border-radius:28px}
+#laptop .bar{height:26px;background:#E3EAF0;display:flex;align-items:center;gap:6px;padding:0 10px}
+#laptop .bar i{width:10px;height:10px;border-radius:50%;background:#C3CDD5}
+#laptop .bar span{margin-left:14px;font:12px system-ui;color:#62727F}
+.tag{position:absolute;top:-44px;left:0;font-weight:800;font-size:28px;white-space:nowrap}
+#brand{position:absolute;left:28px;top:20px;display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;z-index:5}
+#brand img{width:42px;height:42px;border-radius:11px}
+#prog{position:absolute;right:30px;top:30px;display:flex;gap:8px;z-index:5}
+#prog i{width:34px;height:7px;border-radius:4px;background:#ffffff40;transition:.5s}#prog i.on{background:#7DE3D8}
+#cap{position:absolute;left:50%;bottom:34px;transform:translate(-50%,40px);opacity:0;display:flex;align-items:center;gap:16px;background:#ffffffee;color:#0A3D62;border-radius:22px;padding:14px 26px 14px 14px;box-shadow:0 12px 40px #0006;transition:all .6s cubic-bezier(.2,.9,.3,1.2);z-index:8;max-width:1100px}
+#cap.on{opacity:1;transform:translate(-50%,0)}
+#cap.left{left:60px;bottom:auto;top:50%;transform:translate(-40px,-50%);max-width:560px;padding:22px 28px 22px 20px;border-radius:28px}
+#cap.left.on{transform:translate(0,-50%)}#cap.left span{font-size:34px}#cap.left b.n{width:60px;height:60px;font-size:30px}
+#cap b.n{width:46px;height:46px;border-radius:50%;background:#0E7C86;color:#fff;display:grid;place-items:center;font-size:24px;flex:none}
+#cap span{font-size:26px;font-weight:700;line-height:1.2}
+#cur{position:absolute;left:0;top:0;width:34px;height:34px;z-index:20;transition:transform .85s cubic-bezier(.5,.05,.2,1);pointer-events:none;filter:drop-shadow(0 4px 6px #0007)}
+#rip{position:absolute;width:20px;height:20px;border-radius:50%;border:4px solid #7DE3D8;z-index:19;opacity:0;pointer-events:none}
+#rip.go{animation:rip .7s ease-out}
+@keyframes rip{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(3.6)}}
+.card{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(900px 600px at 50% 30%,#0E7C86,#0A3D62 60%,#071E33);opacity:0;pointer-events:none;transition:opacity .9s}
+.card.on{opacity:1}
+.card img{width:170px;height:170px;border-radius:42px;box-shadow:0 20px 60px #0007;transform:scale(.6);transition:transform 1.2s cubic-bezier(.2,.9,.3,1.3)}
+.card.on img{transform:none}
+.card h1{font-size:68px;margin:30px 0 8px;letter-spacing:-1px;transform:translateY(24px);opacity:0;transition:all .9s .35s}
+.card h2{font-size:30px;font-weight:500;margin:0;opacity:0;transform:translateY(24px);transition:all .9s .6s;color:#BFEFEA}
+.card.on h1,.card.on h2{transform:none;opacity:1}
+.card .steps4{display:flex;gap:26px;margin-top:34px;opacity:0;transition:opacity .9s 1s}.card.on .steps4{opacity:1}
+.card .steps4 div{background:#ffffff1a;border-radius:18px;padding:14px 20px;font-size:22px;font-weight:700}
+.card .cta{margin-top:34px;background:#fff;color:#0A3D62;font-weight:800;font-size:28px;padding:16px 34px;border-radius:18px;opacity:0;transition:opacity .9s 1s}.card.on .cta{opacity:1}
+</style></head><body>
+<div id="stage">
+  <div class="bubble" style="width:420px;height:420px;left:-120px;top:380px"></div><div class="bubble" style="width:300px;height:300px;left:980px;top:-90px;animation-delay:-5s"></div>
+  <div id="brand"><img src="../www/logo.svg" alt="">CamiJuncal</div>
+  <div id="prog"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="dev" id="laptop"><div class="bar"><i></i><i></i><i></i><span>Panel del conmutador</span></div><iframe id="f1" width="1000" height="614"></iframe></div>
+  <div class="dev" id="phone"><iframe id="f2" width="390" height="844"></iframe></div>
+  <svg id="cur" viewBox="0 0 24 24"><path d="M4 2l15 9-6.5 1.8L9.8 19.5z" fill="#fff" stroke="#0A3D62" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  <div id="rip"></div>
+  <div id="cap"><b class="n">1</b><span>…</span></div>
+  <div class="card on" id="c-intro"><img src="../www/logo.svg" alt=""><h1>CamiJuncal</h1><h2>Traslados de pacientes en tiempo real · Sanatorio Juncal</h2>
+    <div class="steps4"><div>☎️ Conmutador emite</div><div>👷 Camillero acepta</div><div>📷 Escanea pulsera</div><div>📍 Entrega en destino</div></div></div>
+  <div class="card" id="c-out"><img src="../www/logo.svg" alt=""><h1>Probala ahora</h1><h2>Abrí la app y tocá “🎬 Probar demo”</h2><div class="cta">Sin servidor · con datos de ejemplo</div></div>
+</div>
+<script>
+const $=(s,r=document)=>r.querySelector(s), sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const L=$('#laptop'), P=$('#phone'), F1=$('#f1'), F2=$('#f2'), cur=$('#cur'), rip=$('#rip'), cap=$('#cap');
+// posiciones (esquina sup-izq + escala)
+const POS={
+  laptop:{ big:{x:210,y:72,s:.86,o:1}, small:{x:-120,y:140,s:.7,o:0}, hid:{x:-120,y:140,s:.7,o:0} },
+  phone:{  big:{x:700,y:22,s:.73,o:1}, small:{x:1000,y:60,s:.8,o:0}, hid:{x:1000,y:60,s:.8,o:0} }
+};
+function place(el,k){const p=POS[el.id][k];el.style.transform=`translate(${p.x}px,${p.y}px) scale(${p.s})`;el.style.opacity=p.o;el.style.filter=p.o<1&&p.o>0?'blur(1.5px) brightness(.7)':'none';}
+async function focus(which){ cap.classList.remove('on'); cap.classList.toggle('left',which==='phone'); place(L, which==='laptop'?'big':'small'); place(P, which==='phone'?'big':'small'); await sleep(1100); }
+function showCap(n,t){const c=cap;c.classList.remove('on');setTimeout(()=>{c.querySelector('.n').textContent=n;c.querySelector('span').textContent=t;c.classList.add('on');},350);
+  document.querySelectorAll('#prog i').forEach((i,k)=>i.classList.toggle('on',k<n));}
+function target(frame,sel){const d=frame.contentDocument,el=d.querySelector(sel);if(!el)throw new Error('no '+sel);
+  const r=el.getBoundingClientRect(),f=frame.getBoundingClientRect(),sc=f.width/frame.width;return{el,x:f.left+(r.left+r.width/2)*sc,y:f.top+(r.top+r.height/2)*sc};}
+async function tap(frame,sel,wait=700){const t=target(frame,sel);cur.style.transform=`translate(${t.x-6}px,${t.y-4}px)`;await sleep(900);
+  rip.style.left=t.x+'px';rip.style.top=t.y+'px';rip.classList.remove('go');void rip.offsetWidth;rip.classList.add('go');await sleep(180);t.el.click();await sleep(wait);}
+async function typeIn(frame,sel,text){const t=target(frame,sel);cur.style.transform=`translate(${t.x-6}px,${t.y-4}px)`;await sleep(900);t.el.focus();
+  for(const ch of text){t.el.value+=ch;t.el.dispatchEvent(new Event('input',{bubbles:true}));await sleep(140);}await sleep(500);}
+async function waitFor(frame,sel,ms=8000){const t0=Date.now();while(Date.now()-t0<ms){if(frame.contentDocument&&frame.contentDocument.querySelector(sel))return true;await sleep(100);}throw new Error('timeout '+sel);}
+
+async function run(){
+  localStorage.removeItem('cj_demo_state'); localStorage.setItem('cj_intro','1');
+  place(L,'hid'); place(P,'hid'); L.style.transition=P.style.transition='none'; await sleep(50); L.style.transition=P.style.transition='';
+  F1.src='../www/index.html?demo=conmutador&embed=1&keep=1'; F2.src='../www/index.html?demo=camillero&embed=1&keep=1';
+  await Promise.all([waitFor(F1,'#q',15000),waitFor(F2,'.wrap',15000)]);
+  await sleep(3800);                        // tarjeta de título
+  $('#c-intro').classList.remove('on'); await sleep(700);
+  // 1 · conmutador
+  await focus('laptop'); showCap(1,'El conmutador emite la orden de traslado');
+  await sleep(900); await typeIn(F1,'#q','sosa'); await waitFor(F1,'.pick'); await tap(F1,'.pick');
+  const d=F1.contentDocument.querySelector('#dest'); cur.style.transform=`translate(${target(F1,'#dest').x-6}px,${target(F1,'#dest').y-4}px)`; await sleep(900); d.value='2'; d.dispatchEvent(new Event('change',{bubbles:true})); await sleep(600);
+  await tap(F1,"[data-pr='urgente']"); await tap(F1,"[data-rq='Monitor']",500);
+  await tap(F1,'#emitir',800);
+  // 2 · camilleros reciben
+  await focus('phone'); showCap(2,'Los camilleros en turno reciben el aviso al instante');
+  await waitFor(F2,'.alert-bg'); await sleep(3200);
+  showCap(2,'El primero que toca “Me hago cargo” se queda el traslado');
+  await tap(F2,'#al-ok',1800);
+  // 3 · pulsera
+  showCap(3,'Escanea la pulsera del paciente (barras o QR)');
+  await sleep(1200); await tap(F2,'#scan-pac',400); await waitFor(F2,'.scanov'); await sleep(1900);
+  await waitFor(F2,'#scan-dest'); await sleep(1800);
+  // 4 · destino + nota
+  showCap(4,'Lo lleva al destino, suma una nota y escanea el QR del lugar');
+  await tap(F2,"[data-nota='Con suero']",400); await tap(F2,"[data-nota='Tranquilo']",500);
+  await tap(F2,'#scan-dest',400); await waitFor(F2,'.scanov'); await sleep(1900); await waitFor(F2,'.done-card'); await sleep(2200);
+  // 5 · panel
+  await focus('laptop'); showCap(5,'El conmutador sigue todo en vivo y queda el historial completo');
+  await sleep(600); await tap(F1,"[data-t='curso']",1500);
+  await tap(F1,'[data-ev]',2600);
+  F1.contentDocument.querySelector('.modal-bg').click(); await sleep(1200);
+  await tap(F1,"[data-t='equipo']",2400);
+  cap.classList.remove('on'); await sleep(500);
+  $('#c-out').classList.add('on'); await sleep(4200);
+  window.__done=true;
+}
+run().catch(e=>{console.error(e);window.__err=String(e);window.__done=true;});
+</script></body></html>

@@ -12,12 +12,16 @@ const S = {
   tab: null, traslados: [], hist: [], equipo: [], stats: null, lugares: [],
   alertados: new Set(), conectado: false, admin: 'usuarios',
   form: { pac: null, destino: '', prioridad: 'normal', req: [], nota: '', origen: '' },
-  scanErr: '', nota: '',
+  scanErr: '', nota: '', demo: false, embed: false, intro: false, introIdx: 0,
 };
 const REQS = ['Oxígeno', 'Aislamiento', 'Silla de ruedas', 'Camilla', 'Acompañante', 'Monitor'];
 
 /* ---------- API ---------- */
 async function api(path, method = 'GET', body) {
+  if (S.demo) {
+    try { return await Demo.api(path, method, body, S.token); }
+    catch (e) { if (e.code === 401 && path !== '/login') { salir(true); } throw e; }
+  }
   let r;
   try {
     r = await fetch(S.server + '/api' + path, { method, headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -69,7 +73,8 @@ const Nat = {
   },
 };
 /** Lee un código de barras o QR. En el celular abre el escáner; en PC pide el código a mano (modo prueba). */
-async function escanear(titulo) {
+async function escanear(titulo, demoCode) {
+  if (S.demo && demoCode) return escaneoSimulado(titulo, demoCode);
   if (NATIVE) {
     const BS = plug('BarcodeScanner');
     try {
@@ -81,6 +86,15 @@ async function escanear(titulo) {
   }
   return codigoManual(titulo + ' (modo prueba)');
 }
+function escaneoSimulado(titulo, code) {
+  return new Promise((res) => {
+    const d = document.createElement('div'); d.className = 'scanov';
+    d.innerHTML = `<div class="scanbox"><i></i><i></i><i></i><i></i><div class="line"></div></div><b>${esc(titulo)}</b><small>Modo demo · escaneo simulado</small>`;
+    document.body.appendChild(d); beep();
+    setTimeout(() => { navigator.vibrate && navigator.vibrate(120); d.remove(); res(code); }, embedDelay(1500));
+  });
+}
+const embedDelay = (ms) => ms;
 function codigoManual(titulo) {
   return new Promise((res) => modal(`<h3>${esc(titulo)}</h3><p class="hint">Escribí o pegá el código de la pulsera / QR (DNI, código de pulsera o historia clínica).</p>
     <input id="cm" autocomplete="off" autofocus placeholder="Código"><div style="height:12px"></div>
@@ -98,11 +112,13 @@ function beep() {
 /* ---------- Sesión / conexión ---------- */
 function salir(silencioso) {
   if (S.token && !silencioso) api('/logout', 'POST').catch(() => {});
-  Nat.servicio(false);
+  if (!S.demo) Nat.servicio(false);
+  S.demo = false; Demo.onMessage(null);
   if (S.ws) { S.ws.onclose = null; S.ws.close(); S.ws = null; }
   S.token = null; S.user = null; LS.del('cj_token'); S.tab = null; render();
 }
 function conectarWS() {
+  if (S.demo) { S.conectado = true; Demo.onMessage(onMensaje); return; }
   if (S.ws) { S.ws.onclose = null; try { S.ws.close(); } catch {} }
   if (!S.token) return;
   const base = (S.server || location.origin).replace(/^http/, 'ws');
@@ -116,7 +132,7 @@ const pintarEstado = () => { const el = $('#conn'); if (el) el.textContent = S.c
 function onMensaje(m) {
   if (m.tipo === 'nueva' && S.user.rol === 'camillero' && m.traslado && !S.alertados.has(m.traslado.id + m.traslado.emitido_en + (m.devuelta ? 'd' : ''))) {
     S.alertados.add(m.traslado.id + m.traslado.emitido_en + (m.devuelta ? 'd' : ''));
-    if (!miActivo()) { alertaNueva(m.traslado); Nat.notificar(m.traslado); }
+    if (!miActivo()) { alertaNueva(m.traslado); if (!S.demo) Nat.notificar(m.traslado); }
   }
   if (m.tipo === 'actualizada' && S.user.rol === 'camillero' && m.traslado && m.traslado.camillero_id !== S.user.id && !m.cancelada) {
     const a = $('.alert-bg'); if (a && a.dataset.id == m.traslado.id) { a.remove(); stopAlarm(); toast(`${m.traslado.camillero || 'Otro camillero'} tomó el traslado`); }
@@ -164,16 +180,18 @@ function render(soft) {
   const app = $('#app');
   const ae = document.activeElement;
   if (soft && ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && app.contains(ae)) return; // no pisar lo que se está escribiendo
-  if (!NATIVE ? false : !S.server) return vistaServidor(app);
+  if (S.intro) return vistaIntro(app);
+  if (!S.demo && NATIVE && !S.server) return vistaServidor(app);
   if (!S.token || !S.user) return vistaLogin(app);
   const rol = S.user.rol;
   if (rol === 'camillero') vistaCamillero(app); else vistaDespacho(app);
 }
 function header(sub) {
   return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>CamiJuncal</b><span>${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
-  <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>`;
+  <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>${S.demo ? `<div class="demo-bar">🎬 MODO DEMO · datos de ejemplo <button id="demo-out">Salir</button></div>` : ''}`;
 }
 function bindMenu() {
+  const dx = $('#demo-out'); if (dx) dx.onclick = () => { S.token = null; S.user = null; S.demo = false; Demo.onMessage(null); S.tab = null; render(); };
   const m = $('#menu'); if (!m) return;
   m.onclick = () => modal(`<h3>${esc(S.user.nombre)}</h3><p class="hint">Rol: ${esc(S.user.rol)} · usuario ${esc(S.user.usuario)}</p>
     <button class="btn ghost" id="m-pin">🔒 Cambiar mi PIN</button><div style="height:8px"></div>
@@ -195,7 +213,9 @@ function vistaServidor(app) {
   app.innerHTML = `<div class="login"><div class="logo"><img src="logo.svg" alt=""><h1>CamiJuncal</h1><p>Primera configuración</p></div>
     <label>Dirección del servidor de traslados</label><input id="srv" inputmode="url" placeholder="http://192.168.1.50:3000" value="${esc(S.server)}">
     <p class="hint">La da el área de sistemas. Ejemplo: http://192.168.1.50:3000 o https://traslados.sanatorio.com</p><div style="height:10px"></div>
-    <div id="e"></div><button class="btn" id="go">Guardar y continuar</button></div>`;
+    <div id="e"></div><button class="btn" id="go">Guardar y continuar</button>
+    <div class="row" style="justify-content:center;flex-wrap:wrap"><button class="link" id="s-demo">🎬 Probar demo sin servidor</button><button class="link" id="s-how">ℹ️ ¿Cómo funciona?</button></div></div>`;
+  $('#s-demo').onclick = elegirDemo; $('#s-how').onclick = () => { S.intro = true; S.introIdx = 0; render(); };
   $('#go').onclick = async () => {
     const v = $('#srv').value.trim().replace(/\/+$/, ''); if (!/^https?:\/\//.test(v)) return ($('#e').innerHTML = '<div class="err">Debe empezar con http:// o https://</div>');
     try { const r = await fetch(v + '/api/health'); if (!r.ok) throw 0; S.server = v; LS.set('cj_server', v); render(); }
@@ -209,11 +229,13 @@ function vistaLogin(app) {
     <label>Usuario</label><input id="u" autocapitalize="none" autocomplete="username" value="${esc(LS.get('cj_user') || '')}">
     <label>PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
     <div id="e"></div><div style="height:6px"></div><button class="btn big" id="go">Ingresar</button>
+    <div class="row" style="justify-content:center;flex-wrap:wrap"><button class="link" id="l-demo">🎬 Probar demo</button><button class="link" id="l-how">ℹ️ ¿Cómo funciona?</button></div>
     ${NATIVE ? '<button class="link" id="srv" style="width:100%">Cambiar servidor</button>' : ''}</div>`;
+  $('#l-demo').onclick = elegirDemo; $('#l-how').onclick = () => { S.intro = true; S.introIdx = 0; render(); };
   const go = async () => {
     try {
       const r = await api('/login', 'POST', { usuario: $('#u').value, pin: $('#p').value });
-      S.token = r.token; S.user = r.usuario; LS.set('cj_token', r.token); LS.set('cj_user', r.usuario.usuario);
+      S.token = r.token; S.user = r.usuario; LS.set('cj_token', r.token); LS.set('cj_user', r.usuario.usuario); S.demo = false;
       S.tab = null; await iniciarSesion();
     } catch (e) { $('#e').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
   };
@@ -221,9 +243,50 @@ function vistaLogin(app) {
   const s = $('#srv'); if (s) s.onclick = () => { S.server = ''; LS.del('cj_server'); render(); };
 }
 async function iniciarSesion() {
-  await Nat.init(); conectarWS(); await cargar();
-  if (S.user.rol === 'camillero' && S.user.en_turno) Nat.servicio(true);
+  if (!S.demo) await Nat.init();
+  conectarWS(); await cargar();
+  if (!S.demo && S.user.rol === 'camillero' && S.user.en_turno) Nat.servicio(true);
 }
+async function iniciarDemo(rol, opts = {}) {
+  S.demo = true; S.intro = false; S.tab = null; S.finalizado = null; S.nota = ''; S.scanErr = '';
+  S.alertados = new Set(); S.form = { pac: null, destino: '', prioridad: 'normal', req: [], nota: '', origen: '' };
+  if (!opts.keep) Demo.reset(); else Demo.load();
+  const r = await Demo.api('/login', 'POST', { usuario: rol === 'camillero' ? 'carlos' : 'conmutador' });
+  S.token = r.token; S.user = r.usuario;
+  S.lugares = []; await iniciarSesion();
+  if (!opts.nobots) Demo.bots(rol);
+}
+function elegirDemo() {
+  modal(`<h3>🎬 Probar la demo</h3><p class="hint">Funciona sin servidor, con datos de ejemplo. ¿Cómo querés verla?</p>
+    <button class="btn big" id="d-cam">👷 Soy camillero</button><div style="height:10px"></div>
+    <button class="btn big navy" id="d-con">☎️ Soy conmutador</button>
+    <p class="hint" style="margin-top:12px">Tip: abrí la demo en dos pestañas, una como conmutador y otra como camillero, y vas a ver cómo se comunican.</p>
+    <button class="link" style="width:100%" onclick="cerrarModal()">Cancelar</button>`, () => {
+    $('#d-cam').onclick = () => { cerrarModal(); iniciarDemo('camillero'); };
+    $('#d-con').onclick = () => { cerrarModal(); iniciarDemo('conmutador'); };
+  });
+}
+
+/* ----- Introducción ----- */
+const SLIDES = [
+  { ico: null, t: 'Traslados de pacientes, sin llamadas ni papeles', d: 'CamiJuncal conecta al conmutador con los camilleros en tiempo real y deja registro de cada traslado.' },
+  { ico: '☎️ → 📣 → 👷', t: 'El conmutador emite, los camilleros reciben', d: 'La orden llega al instante a todos los camilleros en turno, con sonido y vibración. El primero que toca “Me hago cargo” se queda el traslado.' },
+  { ico: '🧾 → 📷 → ✅', t: 'Primero, verificá al paciente', d: 'Escaneá la pulsera (código de barras o QR). Si no es el paciente de la orden, la app te frena antes de que lo retires.' },
+  { ico: '📍 → 📷 → 📝', t: 'Entregá y dejá tu aviso', d: 'Escaneá el QR del lugar de destino, sumá una nota sobre el paciente y finalizá. Queda todo registrado con horarios.' },
+];
+function vistaIntro(app) {
+  const i = S.introIdx, sl = SLIDES[i], ult = i === SLIDES.length - 1;
+  app.innerHTML = `<div class="intro"><button class="link intro-skip" id="i-skip">${ult ? '' : 'Saltar'}</button>
+    <div class="intro-body" key="${i}"><div class="ill">${sl.ico ? `<span>${sl.ico}</span>` : '<img src="logo.svg" alt="">'}</div><h1>${esc(sl.t)}</h1><p>${esc(sl.d)}</p></div>
+    <div class="dots">${SLIDES.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="intro-btns">${ult ? '<button class="btn big" id="i-demo">🎬 Probar la demo</button><button class="btn ghost" id="i-go">Ingresar con mi usuario</button>' : '<button class="btn big" id="i-next">Siguiente</button>'}</div></div>`;
+  const fin = () => { LS.set('cj_intro', '1'); S.intro = false; S.introIdx = 0; };
+  const sk = $('#i-skip'); if (sk) sk.onclick = () => { fin(); render(); };
+  const nx = $('#i-next'); if (nx) nx.onclick = () => { S.introIdx++; render(); };
+  const dm = $('#i-demo'); if (dm) dm.onclick = () => { fin(); render(); elegirDemo(); };
+  const go = $('#i-go'); if (go) go.onclick = () => { fin(); render(); };
+}
+
 
 /* ----- Camillero ----- */
 function cardTraslado(t, opts = {}) {
@@ -292,9 +355,9 @@ function bindMio(t) {
     try { const r = await api(`/traslados/${t.id}/completar`, 'POST', { codigo, nota: S.nota }); S.nota = ''; S.finalizado = r; navigator.vibrate && navigator.vibrate(200); await cargar(); }
     catch (e) { S.scanErr = e.message; navigator.vibrate && navigator.vibrate([300, 100, 300]); beep(); render(); }
   };
-  const a = $('#scan-pac'); if (a) a.onclick = async () => retirar(await escanear('Escaneá la pulsera del paciente'));
+  const a = $('#scan-pac'); if (a) a.onclick = async () => retirar(await escanear('Escaneá la pulsera del paciente', S.demo ? Demo.pacienteCodigo(t.paciente_id) : null));
   const b = $('#man-pac'); if (b) b.onclick = async () => retirar(await codigoManual('Código de la pulsera'));
-  const c = $('#scan-dest'); if (c) c.onclick = async () => { S.nota = $('#nota').value; completar(await escanear('Escaneá el QR del destino')); };
+  const c = $('#scan-dest'); if (c) c.onclick = async () => { S.nota = $('#nota').value; completar(await escanear('Escaneá el QR del destino', S.demo ? t.destino_codigo : null)); };
   const d = $('#man-dest'); if (d) d.onclick = async () => { S.nota = $('#nota').value; completar(await codigoManual('Código del destino (ej. LUG-RX01)')); };
   const n = $('#nota'); if (n) n.oninput = () => (S.nota = n.value);
   document.querySelectorAll('[data-nota]').forEach((x) => (x.onclick = () => { S.nota = (S.nota ? S.nota + ', ' : '') + x.dataset.nota; $('#nota').value = S.nota; }));
@@ -351,8 +414,8 @@ function bindNuevo() {
   document.querySelectorAll('[data-rq]').forEach((b) => (b.onclick = () => { keep(); const r = b.dataset.rq; F.req = F.req.includes(r) ? F.req.filter((y) => y !== r) : [...F.req, r]; render(); }));
   $('#emitir').onclick = async () => {
     keep(); if (!F.pac) return ($('#err').innerHTML = '<div class="err">Elegí un paciente</div>'); if (!F.destino) return ($('#err').innerHTML = '<div class="err">Elegí el destino</div>');
-    try { await api('/traslados', 'POST', { paciente_id: F.pac.id, destino_id: Number(F.destino), prioridad: F.prioridad, requisitos: F.req.join(', '), nota: F.nota, origen: F.origen });
-      S.form = { pac: null, destino: '', prioridad: 'normal', req: [], nota: '', origen: '' }; toast('Aviso enviado a los camilleros en turno ✔'); S.tab = 'curso'; await cargar(); }
+    try { const nt = await api('/traslados', 'POST', { paciente_id: F.pac.id, destino_id: Number(F.destino), prioridad: F.prioridad, requisitos: F.req.join(', '), nota: F.nota, origen: F.origen });
+      if (S.demo && !S.embed) Demo.lucia(nt); S.form = { pac: null, destino: '', prioridad: 'normal', req: [], nota: '', origen: '' }; toast('Aviso enviado a los camilleros en turno ✔'); S.tab = 'curso'; await cargar(); }
     catch (e) { $('#err').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
   };
 }
@@ -421,8 +484,12 @@ async function bindAdmin() {
 /* ---------- Arranque ---------- */
 setInterval(() => { if (S.user && !document.querySelector('.modal-bg')) cargar(); }, 20000);
 (async () => {
+  const q = new URLSearchParams(location.search);
+  S.embed = q.get('embed') === '1';
+  if (q.get('demo')) { await iniciarDemo(q.get('demo'), { keep: q.get('keep') === '1', nobots: S.embed }); render(); return; }
   if (S.token && (!NATIVE || S.server)) {
     try { S.user = await api('/me'); await iniciarSesion(); } catch { S.token = null; }
   }
+  if (!S.token && !LS.get('cj_intro')) S.intro = true;
   render();
 })();

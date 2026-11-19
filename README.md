@@ -10,6 +10,11 @@ App Android para camilleros + servidor para el conmutador.
 5. Lo lleva al destino y **escanea el QR del lugar** (si es otro lugar, avisa). Agrega una **nota/aviso** y finaliza.
 6. Todo queda registrado con horarios (aceptación, retiro, entrega) y nota.
 
+## Demo y video
+- **Modo demo:** en la pantalla de ingreso tocá **🎬 Probar demo** (funciona sin servidor, con datos de ejemplo). Podés verlo como camillero o como conmutador; abriendo la demo en dos pestañas se comunican entre sí.
+- **Introducción:** la primera vez que se abre la app muestra 4 pantallas explicativas (también desde “ℹ️ ¿Cómo funciona?”).
+- **Video:** [`docs/camijuncal-demo.mp4`](docs/camijuncal-demo.mp4) muestra el recorrido completo. Se genera con `video/storyboard.html` + `video/grabar.py`.
+
 ## Estructura
 | Carpeta | Qué es |
 |---|---|
