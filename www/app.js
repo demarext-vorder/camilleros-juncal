@@ -224,16 +224,16 @@ function render(soft) {
 }
 function header(sub) {
   return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline">${live()}</span></span></div>
-  <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>${S.demo ? `<div class="demo-bar">🎬 MODO DEMO · datos de ejemplo <button id="demo-out">Salir</button></div>` : ''}`;
+  <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>`;
 }
 function bindMenu() {
-  const dx = $('#demo-out'); if (dx) dx.onclick = () => { S.token = null; S.user = null; S.demo = false; Demo.onMessage(null); S.tab = null; render(); };
+  const salirDemo = () => { S.token = null; S.user = null; S.demo = false; Demo.onMessage(null); S.tab = null; render(); };
   const m = $('#menu'); if (!m) return;
   m.onclick = () => modal(`<h3>${esc(S.user.nombre)}</h3><p class="hint">Rol: ${esc(S.user.rol)} · usuario ${esc(S.user.usuario)}</p>
     <button class="btn ghost" id="m-pin">🔒 Cambiar mi PIN</button><div style="height:8px"></div>
     ${NATIVE ? '<button class="btn ghost" id="m-srv">🌐 Servidor</button><div style="height:8px"></div>' : ''}
-    <button class="btn red" id="m-out">Cerrar sesión</button>`, () => {
-    $('#m-out').onclick = () => { cerrarModal(); salir(); };
+    <button class="btn red" id="m-out">${S.demo ? 'Salir de la demo' : 'Cerrar sesión'}</button>`, () => {
+    $('#m-out').onclick = () => { cerrarModal(); S.demo ? salirDemo() : salir(); };
     $('#m-pin').onclick = cambiarPin;
     const s = $('#m-srv'); if (s) s.onclick = () => { cerrarModal(); salir(); S.server = ''; LS.del('cj_server'); render(); };
   });
@@ -337,7 +337,7 @@ function cardTraslado(t, opts = {}) {
     <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>`}
     <div class="pname">${esc(t.paciente)}</div><div class="meta">DNI ${esc(t.dni)} · Cama ${esc(t.cama || '—')}</div>
     ${opts.compact ? '' : `<div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>`}
-    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}${opts.compact ? '<details class="more"><summary>Ver detalles</summary>' : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.compact ? '</details>' : ''}${opts.extra || ''}</div>`;
+    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
 }
 function vistaCamillero(app) {
   const act = miActivo();
