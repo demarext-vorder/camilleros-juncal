@@ -329,11 +329,18 @@ async function estadoPerm() {
 }
 async function pedirPerm(k) {
   try {
-    if (k === 'notif') await plug('LocalNotifications').requestPermissions();
-    else if (k === 'cam') await plug('BarcodeScanner').requestPermissions();
-    else if (k === 'bat') await plug('ApkUpdater').pedirBateria();
+    if (k === 'bat') await plug('ApkUpdater').pedirBateria();
     else if (k === 'inst') await plug('ApkUpdater').pedirInstalar();
-  } catch (e) { toast('No se pudo abrir el permiso'); }
+    else {
+      if (k === 'notif') await plug('LocalNotifications').requestPermissions();
+      else await plug('BarcodeScanner').requestPermissions();
+      const est = await estadoPerm();
+      if (!est[k]) { await plug('ApkUpdater').abrirAjustes(); toast('Activalo en Ajustes → Permisos de la app', 5000); }
+    }
+  } catch (e) {
+    try { await plug('ApkUpdater').abrirAjustes(); toast('Activalo desde los ajustes de la app', 5000); }
+    catch (e2) { toast('No se pudo abrir el permiso: ' + ((e2 && e2.message) || (e && e.message) || 'error'), 6000); }
+  }
 }
 async function vistaPermisos(app) {
   const est = S.permEst || (S.permEst = await estadoPerm());

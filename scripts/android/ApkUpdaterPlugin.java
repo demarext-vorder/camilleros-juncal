@@ -111,29 +111,41 @@ public class ApkUpdaterPlugin extends Plugin {
         call.resolve(o);
     }
 
+    private boolean lanzar(Intent... intents) {
+        for (Intent i : intents) {
+            try {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (getActivity() != null) getActivity().startActivity(i); else getContext().startActivity(i);
+                return true;
+            } catch (Exception ignored) { }
+        }
+        return false;
+    }
+
+    private Intent ajustesApp() {
+        return new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+    }
+
     @PluginMethod
     public void pedirBateria(PluginCall call) {
-        try {
-            Context c = getContext();
-            Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + c.getPackageName()));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            c.startActivity(i);
-            call.resolve();
-        } catch (Exception e) {
-            call.reject(e.getMessage() == null ? "No se pudo abrir el ajuste" : e.getMessage());
-        }
+        String pk = getContext().getPackageName();
+        boolean ok = lanzar(
+            new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pk)),
+            new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+            ajustesApp());
+        if (ok) call.resolve(); else call.reject("No se pudo abrir los ajustes de batería");
     }
 
     @PluginMethod
     public void pedirInstalar(PluginCall call) {
-        try {
-            Context c = getContext();
-            Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + c.getPackageName()));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            c.startActivity(i);
-            call.resolve();
-        } catch (Exception e) {
-            call.reject(e.getMessage() == null ? "No se pudo abrir el ajuste" : e.getMessage());
-        }
+        boolean ok = lanzar(
+            new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName())),
+            ajustesApp());
+        if (ok) call.resolve(); else call.reject("No se pudo abrir los ajustes");
+    }
+
+    @PluginMethod
+    public void abrirAjustes(PluginCall call) {
+        if (lanzar(ajustesApp())) call.resolve(); else call.reject("No se pudo abrir los ajustes");
     }
 }
