@@ -332,11 +332,11 @@ function cardTraslado(t, opts = {}) {
     (!tiene('silla') && !tiene('camilla')) ? `<span class="chip">${t.movilidad === 'silla' ? '♿ Silla de ruedas' : '🛏 Camilla'}</span>` : '',
     ...rq.map((x) => `<span class="chip ${/ox[ií]geno|aislamiento/i.test(x) ? 'warn' : ''}">${esc(x)}</span>`)].join('');
   return `<div class="card ${t.prioridad === 'urgente' && t.estado === 'EMITIDA' ? 'urg' : ''}">
-    <div class="row"><span class="pill ${t.prioridad === 'urgente' ? 'urg' : 'norm'}">${t.prioridad === 'urgente' ? '🚨 URGENTE' : 'NORMAL'}</span>
-    <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>
+    ${opts.compact ? '' : `<div class="row"><span class="pill ${t.prioridad === 'urgente' ? 'urg' : 'norm'}">${t.prioridad === 'urgente' ? '🚨 URGENTE' : 'NORMAL'}</span>
+    <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>`}
     <div class="pname">${esc(t.paciente)}</div><div class="meta">DNI ${esc(t.dni)} · Cama ${esc(t.cama || '—')}</div>
-    <div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>
-    <div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
+    ${opts.compact ? '' : `<div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>`}
+    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
 }
 function vistaCamillero(app) {
   const act = miActivo();
@@ -369,14 +369,15 @@ function vistaMiTraslado(t) {
   const steps = `<div class="steps"><div class="done"><i></i>Aceptado</div><div class="${paso === 1 ? 'cur' : 'done'}"><i></i>Paciente</div><div class="${paso === 2 ? 'cur' : ''}"><i></i>Destino</div></div>`;
   const err = S.scanErr ? `<div class="err">${esc(S.scanErr)}</div>` : '';
   if (paso === 1) return `${steps}<div class="big-instr"><small>Paso 1 · Buscar al paciente</small><b>${esc(t.origen || '—')}</b></div>${err}
-    ${cardTraslado(t)}<button class="btn big green" id="scan-pac">${ICON('camera')} ESCANEAR PULSERA</button>
-    <div class="row" style="justify-content:center"><button class="link" id="man-pac">Ingresar código a mano</button><button class="link" id="liberar" style="color:#9b1c1c">Devolver traslado</button></div>`;
+    <button class="btn big green" id="scan-pac">${ICON('camera')} ESCANEAR PULSERA</button>
+    <div class="row" style="justify-content:center;margin:2px 0 10px"><button class="link" id="man-pac">Ingresar código a mano</button><button class="link" id="liberar" style="color:#9b1c1c">Devolver traslado</button></div>
+    ${cardTraslado(t, { compact: true })}`;
   return `${steps}<div class="ok">✔ Paciente verificado: ${esc(t.paciente)}</div><div class="big-instr"><small>Paso 2 · Llevar a</small><b>${esc(t.destino)}</b></div>${err}
+    <button class="btn big green" id="scan-dest">${ICON('scan')} ESCANEAR QR DEL DESTINO</button>
+    <div class="row" style="justify-content:center;margin:2px 0 10px"><button class="link" id="man-dest">Ingresar código a mano</button></div>
     <div class="card"><label style="margin-top:0">Nota o aviso del paciente (opcional)</label>
     <div class="chips">${['Tranquilo', 'Con dolor', 'Con suero', 'Mareado', 'Familiar acompaña'].map((c) => `<button class="chip" data-nota="${c}">${c}</button>`).join('')}</div>
-    <textarea id="nota" placeholder="Ej.: llegó con suero colocado…">${esc(S.nota)}</textarea></div>
-    <button class="btn big green" id="scan-dest">${ICON('scan')} ESCANEAR QR DEL DESTINO</button>
-    <div class="row" style="justify-content:center"><button class="link" id="man-dest">Ingresar código a mano</button></div>`;
+    <textarea id="nota" rows="2" placeholder="Ej.: llegó con suero colocado…">${esc(S.nota)}</textarea></div>`;
 }
 function bindMio(t) {
   const fin = $('#fin-ok'); if (fin) fin.onclick = () => { S.finalizado = null; S.tab = 'pend'; render(); };
