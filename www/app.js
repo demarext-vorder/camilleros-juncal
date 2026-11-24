@@ -16,6 +16,41 @@ const S = {
 };
 const REQS = ['Oxígeno', 'Aislamiento', 'Silla de ruedas', 'Camilla', 'Acompañante', 'Monitor'];
 
+
+/* ---------- Íconos de línea animados (estilo Gastos) ---------- */
+const spokes = [0,1,2,3,4,5,6,7].map((k) => { const a = k * Math.PI / 4, c = Math.cos(a), sn = Math.sin(a);
+  return `<path d="M${(12 + 6.5 * c).toFixed(2)} ${(12 + 6.5 * sn).toFixed(2)}L${(12 + 9.5 * c).toFixed(2)} ${(12 + 9.5 * sn).toFixed(2)}"/>`; }).join('');
+const ICONS = {
+  list: '<path d="M6 7h13M6 12h9M6 17h11"/>',
+  bed: '<path d="M3 12h16l3-3M7 12v5M15 12v5M3 9h4"/><circle cx="7" cy="19.5" r="1.4"/><circle cx="15" cy="19.5" r="1.4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17 14c2.6 0 4.5 2 4.5 5"/>',
+  gear: `<g class="gear"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5"/>${spokes}</g>`,
+  camera: '<rect x="3" y="7" width="18" height="12" rx="3.5"/><circle cx="12" cy="13" r="3.2"/><path d="M8 7l1.5-2.5h5L16 7"/>',
+  scan: '<path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  hand: '<path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11M11 10V5a1.5 1.5 0 0 1 3 0v6M14 10V6.5a1.5 1.5 0 0 1 3 0V13a7 7 0 0 1-7 7c-2.5 0-4-1.2-5.2-3.2L3 13.5a1.5 1.5 0 0 1 2.6-1.5L8 14.5"/>',
+  mega: '<path d="M4 10v4h3.5L15 18V6L7.5 10H4z"/><path d="M18 9.5c1.6 1.2 1.6 3.8 0 5"/>',
+  bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  coffee: '<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 10h2a2 2 0 0 1 0 4h-2M8 3v3M12 3v3"/>',
+};
+const ICON = (n, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${(ICONS[n] || '').replace(/<(path|circle|rect|line)\b/g, '<$1 pathLength="1"')}</svg>`;
+const live = () => `<i class="live ${S.conectado ? '' : 'off'}"></i>${S.conectado ? 'conectado' : 'sin conexión…'}`;
+const bigIco = (n) => `<div class="bigico float">${ICON(n)}</div>`;
+/** Números que cuentan hasta su valor. */
+function contar() {
+  document.querySelectorAll('.stat b[data-n]').forEach((el) => {
+    const to = Number(el.dataset.n), dec = String(el.dataset.n).includes('.') ? 1 : 0, t0 = performance.now(), key = el.dataset.k;
+    const from = (S.prevStats && S.prevStats[key]) || 0;
+    const tick = (t) => { const k = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - k, 3), v = from + (to - from) * e;
+      el.firstChild.nodeValue = dec ? v.toFixed(1) : Math.round(v); if (k < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  S.prevStats = Object.fromEntries([...document.querySelectorAll('.stat b[data-n]')].map((e) => [e.dataset.k, Number(e.dataset.n)]));
+}
+
 /* ---------- API ---------- */
 async function api(path, method = 'GET', body) {
   if (S.demo) {
@@ -127,7 +162,7 @@ function conectarWS() {
   ws.onmessage = (e) => { const m = JSON.parse(e.data); onMensaje(m); };
   ws.onclose = () => { S.conectado = false; pintarEstado(); if (S.token) setTimeout(conectarWS, 3000); };
 }
-const pintarEstado = () => { const el = $('#conn'); if (el) el.textContent = S.conectado ? '● conectado' : '○ sin conexión…'; };
+const pintarEstado = () => { const el = $('#conn'); if (el) el.innerHTML = live(); };
 
 function onMensaje(m) {
   if (m.tipo === 'nueva' && S.user.rol === 'camillero' && m.traslado && !S.alertados.has(m.traslado.id + m.traslado.emitido_en + (m.devuelta ? 'd' : ''))) {
@@ -160,10 +195,10 @@ function stopAlarm() { clearInterval(alarmTimer); alarmTimer = null; }
 function alertaNueva(t) {
   stopAlarm(); document.querySelectorAll('.alert-bg').forEach((n) => n.remove());
   const d = document.createElement('div'); d.className = 'alert-bg ' + (t.prioridad === 'urgente' ? '' : 'norm'); d.dataset.id = t.id;
-  d.innerHTML = `<small style="letter-spacing:1px;font-weight:700">${t.prioridad === 'urgente' ? '🚨 TRASLADO URGENTE' : 'NUEVO TRASLADO'}</small>
+  d.innerHTML = `<div class="bell">${ICON('bell')}</div><small style="letter-spacing:1px;font-weight:700">${t.prioridad === 'urgente' ? 'TRASLADO URGENTE' : 'NUEVO TRASLADO'}</small>
     <div class="pn">${esc(t.paciente)}</div><div>${esc(t.origen || '')}</div>
     <div class="box"><small>DESTINO</small><div style="font-size:24px;font-weight:800">${esc(t.destino)}</div>${t.requisitos ? `<div style="margin-top:6px">${esc(t.requisitos)}</div>` : ''}${t.nota_emision ? `<div style="margin-top:6px">📝 ${esc(t.nota_emision)}</div>` : ''}</div>
-    <button class="btn big" id="al-ok">✋ ME HAGO CARGO</button><button class="btn" id="al-no">Ver después</button>`;
+    <button class="btn big" id="al-ok">${ICON('hand')} ME HAGO CARGO</button><button class="btn" id="al-no">Ver después</button>`;
   document.body.appendChild(d);
   const ring = () => { beep(); navigator.vibrate && navigator.vibrate([400, 200, 400]); };
   ring(); alarmTimer = setInterval(ring, 1800);
@@ -185,9 +220,10 @@ function render(soft) {
   if (!S.token || !S.user) return vistaLogin(app);
   const rol = S.user.rol;
   if (rol === 'camillero') vistaCamillero(app); else vistaDespacho(app);
+  contar();
 }
 function header(sub) {
-  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline;opacity:.9">${S.conectado ? '● conectado' : '○ sin conexión…'}</span></span></div>
+  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline">${live()}</span></span></div>
   <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>${S.demo ? `<div class="demo-bar">🎬 MODO DEMO · datos de ejemplo <button id="demo-out">Salir</button></div>` : ''}`;
 }
 function bindMenu() {
@@ -310,15 +346,15 @@ function vistaCamillero(app) {
   let body = '';
   if (S.tab === 'pend') {
     body = `<div class="turno ${en ? 'on' : ''}"><span class="dot"></span><div class="txt"><b>${en ? 'En turno' : 'Fuera de turno'}</b><small>${en ? 'Recibís los avisos del conmutador' : 'Activá para recibir traslados'}</small></div><button class="sw ${en ? 'on' : ''}" id="turno" aria-label="Turno"></button></div>`;
-    body += pend.length ? pend.map((t) => cardTraslado(t, { extra: `<div style="height:8px"></div><button class="btn big ${t.prioridad === 'urgente' ? 'red' : ''}" data-ac="${t.id}" ${act || !en ? 'disabled' : ''}>✋ ME HAGO CARGO</button>${act ? '<div class="hint" style="margin-top:6px">Terminá tu traslado actual para tomar otro.</div>' : !en ? '<div class="hint" style="margin-top:6px">Activá “En turno” para aceptar.</div>' : ''}` })).join('')
-      : `<div class="empty"><div class="big">🛏️</div><b>Sin traslados pendientes</b><div>Te vamos a avisar apenas el conmutador emita uno.</div></div>`;
+    body += pend.length ? pend.map((t) => cardTraslado(t, { extra: `<div style="height:8px"></div><button class="btn big ${t.prioridad === 'urgente' ? 'red' : ''}" data-ac="${t.id}" ${act || !en ? 'disabled' : ''}>${ICON('hand')} ME HAGO CARGO</button>${act ? '<div class="hint" style="margin-top:6px">Terminá tu traslado actual para tomar otro.</div>' : !en ? '<div class="hint" style="margin-top:6px">Activá “En turno” para aceptar.</div>' : ''}` })).join('')
+      : `<div class="empty">${bigIco('bed')}<b>Sin traslados pendientes</b><div>Te vamos a avisar apenas el conmutador emita uno.</div></div>`;
   } else if (S.tab === 'mio') body = vistaMiTraslado(act);
   else body = S.hist.length ? S.hist.map((t) => `<div class="card"><div class="row"><b>${esc(t.paciente)}</b><span class="sp"></span><span class="meta">${hora(t.completado_en)}</span></div><div class="meta">${esc(t.origen || '')} → <b>${esc(t.destino)}</b></div>${t.nota_final ? `<div class="meta">📝 ${esc(t.nota_final)}</div>` : ''}<div class="meta">Duración: ${Math.max(1, Math.round((new Date(t.completado_en) - new Date(t.aceptado_en)) / 60000))} min</div></div>`).join('')
-    : '<div class="empty"><div class="big">🗂️</div>Todavía no hiciste traslados.</div>';
+    : `<div class="empty">${bigIco('folder')}Todavía no hiciste traslados.</div>`;
   app.innerHTML = `${header('👷 ' + S.user.nombre)}<div class="wrap">${body}</div>
-    <nav class="tabs"><button data-t="pend" class="${S.tab === 'pend' ? 'on' : ''}"><span>📋</span>Pendientes${pend.length && !act ? `<i class="bd">${pend.length}</i>` : ''}</button>
-    <button data-t="mio" class="${S.tab === 'mio' ? 'on' : ''}"><span>🛏️</span>Mi traslado${act ? '<i class="bd">1</i>' : ''}</button>
-    <button data-t="hist" class="${S.tab === 'hist' ? 'on' : ''}"><span>🕘</span>Historial</button></nav>`;
+    <nav class="tabs"><button data-t="pend" class="${S.tab === 'pend' ? 'on' : ''}">${ICON('list')}Pendientes${pend.length && !act ? `<i class="bd">${pend.length}</i>` : ''}</button>
+    <button data-t="mio" class="${S.tab === 'mio' ? 'on' : ''}">${ICON('bed')}Mi traslado${act ? '<i class="bd">1</i>' : ''}</button>
+    <button data-t="hist" class="${S.tab === 'hist' ? 'on' : ''}">${ICON('clock')}Historial</button></nav>`;
   bindMenu();
   app.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => { S.tab = b.dataset.t; S.scanErr = ''; render(); }));
   const sw = $('#turno'); if (sw) sw.onclick = async () => {
@@ -327,19 +363,19 @@ function vistaCamillero(app) {
   bindMio(act);
 }
 function vistaMiTraslado(t) {
-  if (S.finalizado) { const f = S.finalizado; return `<div class="card done-card"><div class="ck">✓</div><h2 style="margin:0">Traslado finalizado</h2><p class="meta">${esc(f.paciente)} entregado en <b>${esc(f.destino)}</b></p><p class="meta">Responsable: <b>${esc(f.camillero || S.user.nombre)}</b> · Duración: ${Math.max(1, Math.round((new Date(f.completado_en) - new Date(f.aceptado_en)) / 60000))} min</p><button class="btn" id="fin-ok">Listo</button></div>`; }
-  if (!t) return '<div class="empty"><div class="big">✅</div><b>No tenés un traslado en curso</b><div>Aceptá uno desde “Pendientes”.</div></div>';
+  if (S.finalizado) { const f = S.finalizado; return `<div class="card done-card"><div class="ck">${ICON('check')}</div><h2 style="margin:0">Traslado finalizado</h2><p class="meta">${esc(f.paciente)} entregado en <b>${esc(f.destino)}</b></p><p class="meta">Responsable: <b>${esc(f.camillero || S.user.nombre)}</b> · Duración: ${Math.max(1, Math.round((new Date(f.completado_en) - new Date(f.aceptado_en)) / 60000))} min</p><button class="btn" id="fin-ok">Listo</button></div>`; }
+  if (!t) return `<div class="empty">${bigIco('check')}<b>No tenés un traslado en curso</b><div>Aceptá uno desde “Pendientes”.</div></div>`;
   const paso = t.estado === 'ACEPTADA' ? 1 : 2;
   const steps = `<div class="steps"><div class="done"><i></i>Aceptado</div><div class="${paso === 1 ? 'cur' : 'done'}"><i></i>Paciente</div><div class="${paso === 2 ? 'cur' : ''}"><i></i>Destino</div></div>`;
   const err = S.scanErr ? `<div class="err">${esc(S.scanErr)}</div>` : '';
   if (paso === 1) return `${steps}<div class="big-instr"><small>Paso 1 · Buscar al paciente</small><b>${esc(t.origen || '—')}</b></div>${err}
-    ${cardTraslado(t)}<button class="btn big green" id="scan-pac">📷 ESCANEAR PULSERA</button>
+    ${cardTraslado(t)}<button class="btn big green" id="scan-pac">${ICON('camera')} ESCANEAR PULSERA</button>
     <div class="row" style="justify-content:center"><button class="link" id="man-pac">Ingresar código a mano</button><button class="link" id="liberar" style="color:#9b1c1c">Devolver traslado</button></div>`;
   return `${steps}<div class="ok">✔ Paciente verificado: ${esc(t.paciente)}</div><div class="big-instr"><small>Paso 2 · Llevar a</small><b>${esc(t.destino)}</b></div>${err}
     <div class="card"><label style="margin-top:0">Nota o aviso del paciente (opcional)</label>
     <div class="chips">${['Tranquilo', 'Con dolor', 'Con suero', 'Mareado', 'Familiar acompaña'].map((c) => `<button class="chip" data-nota="${c}">${c}</button>`).join('')}</div>
     <textarea id="nota" placeholder="Ej.: llegó con suero colocado…">${esc(S.nota)}</textarea></div>
-    <button class="btn big green" id="scan-dest">📷 ESCANEAR QR DEL DESTINO</button>
+    <button class="btn big green" id="scan-dest">${ICON('scan')} ESCANEAR QR DEL DESTINO</button>
     <div class="row" style="justify-content:center"><button class="link" id="man-dest">Ingresar código a mano</button></div>`;
 }
 function bindMio(t) {
@@ -370,10 +406,10 @@ function vistaDespacho(app) {
   const admin = S.user.rol === 'admin';
   if (!S.tab) S.tab = 'nuevo';
   const activos = S.traslados.filter((t) => ['EMITIDA', 'ACEPTADA', 'EN_TRASLADO'].includes(t.estado));
-  const tabs = [['nuevo', '➕', 'Nuevo'], ['curso', '🛏️', 'En curso'], ['equipo', '👥', 'Equipo']].concat(admin ? [['admin', '⚙️', 'Admin']] : []);
+  const tabs = [['nuevo', 'plus', 'Nuevo'], ['curso', 'bed', 'En curso'], ['equipo', 'users', 'Equipo']].concat(admin ? [['admin', 'gear', 'Admin']] : []);
   let body = S.tab === 'nuevo' ? vistaNuevo() : S.tab === 'curso' ? vistaCurso(activos) : S.tab === 'equipo' ? vistaEquipo() : vistaAdmin();
   app.innerHTML = `${header((S.user.rol === 'admin' ? '⚙️ ' : '☎️ ') + S.user.nombre)}
-    <nav class="tabs">${tabs.map(([k, i, n]) => `<button data-t="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${n}${k === 'curso' && activos.length ? `<i class="bd">${activos.length}</i>` : ''}</button>`).join('')}</nav>
+    <nav class="tabs">${tabs.map(([k, i, n]) => `<button data-t="${k}" class="${S.tab === k ? 'on' : ''}">${ICON(i)}${n}${k === 'curso' && activos.length ? `<i class="bd">${activos.length}</i>` : ''}</button>`).join('')}</nav>
     <div class="wrap wide">${body}</div>`;
   app.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => { S.tab = b.dataset.t; render(); }));
   bindMenu();
@@ -381,8 +417,8 @@ function vistaDespacho(app) {
 }
 function tiles() {
   const s = S.stats; if (!s) return '';
-  return `<div class="stats"><div class="stat"><b>${s.pendientes}</b><span>Pendientes</span></div><div class="stat"><b>${s.en_curso}</b><span>En curso</span></div><div class="stat"><b>${s.completados}</b><span>Finalizados hoy</span></div>
-  <div class="stat"><b>${s.min_respuesta ?? '–'}<small style="font-size:14px"> min</small></b><span>Respuesta media</span></div><div class="stat"><b>${s.min_traslado ?? '–'}<small style="font-size:14px"> min</small></b><span>Traslado medio</span></div></div>`;
+  const T = (k, v, label, unit) => `<div class="stat"><b ${v == null ? '' : `data-k="${k}" data-n="${v}"`}>${v == null ? '–' : 0}${unit ? `<small> ${unit}</small>` : ''}</b><span>${label}</span></div>`;
+  return `<div class="stats">${T('p', s.pendientes, 'Pendientes')}${T('c', s.en_curso, 'En curso')}${T('f', s.completados, 'Finalizados hoy')}${T('r', s.min_respuesta, 'Respuesta media', 'min')}${T('t', s.min_traslado, 'Traslado medio', 'min')}</div>`;
 }
 function vistaNuevo() {
   const F = S.form; const turno = S.equipo.filter((e) => e.en_turno); const libres = turno.filter((e) => !e.ocupado).length;
@@ -396,7 +432,7 @@ function vistaNuevo() {
     <label>Prioridad</label><div class="seg"><button data-pr="normal" class="${F.prioridad === 'normal' ? 'on' : ''}">Normal</button><button data-pr="urgente" class="${F.prioridad === 'urgente' ? 'on u' : ''}">🚨 Urgente</button></div>
     <label>Requerimientos</label><div class="chips">${REQS.map((r) => `<button class="chip ${F.req.includes(r) ? 'sel' : ''}" data-rq="${r}">${r}</button>`).join('')}</div>
     <label>Nota para el camillero</label><textarea id="nota-e" placeholder="Opcional">${esc(F.nota)}</textarea>
-    <div id="err"></div><div style="height:10px"></div><button class="btn big" id="emitir">📣 EMITIR AVISO A CAMILLEROS</button></div></div>
+    <div id="err"></div><div style="height:10px"></div><button class="btn big" id="emitir">${ICON('mega')} EMITIR AVISO A CAMILLEROS</button></div></div>
     <div><div class="card"><b>Últimos traslados</b>${S.traslados.slice(0, 6).map((t) => `<div class="team"><div style="flex:1"><b>${esc(t.paciente)}</b><div class="meta">→ ${esc(t.destino)} · ${t.camillero ? esc(t.camillero) : 'sin asignar'}</div></div><span class="pill e-${t.estado}">${ESTADO[t.estado]}</span></div>`).join('') || '<div class="meta" style="padding:10px 0">Sin movimientos hoy.</div>'}</div></div></div>`;
 }
 function bindNuevo() {
@@ -424,7 +460,7 @@ function vistaCurso(activos) {
   const tarj = (t) => cardTraslado(t, { extra: `<div class="row" style="margin-top:8px"><span class="meta">${t.camillero ? '' : '<b style="color:#8a5a00">👷 Esperando camillero…</b>'}${t.aceptado_en ? 'Aceptó ' + hora(t.aceptado_en) : ''}</span><span class="sp"></span>
     <button class="btn sm ghost" data-ev="${t.id}">Detalle</button>${['EMITIDA', 'ACEPTADA', 'EN_TRASLADO'].includes(t.estado) ? `<button class="btn sm red" data-cn="${t.id}">Cancelar</button>` : ''}</div>` });
   return `${tiles()}<h3 style="margin:4px 0 10px">En curso (${activos.length})</h3><div class="grid2"><div>${activos.filter((_, i) => i % 2 === 0).map(tarj).join('')}</div><div>${activos.filter((_, i) => i % 2).map(tarj).join('')}</div></div>
-    ${activos.length ? '' : '<div class="empty"><div class="big">☕</div>No hay traslados en curso.</div>'}
+    ${activos.length ? '' : `<div class="empty">${bigIco('coffee')}No hay traslados en curso.</div>`}
     <h3 style="margin:14px 0 10px">Finalizados hoy (${fin.length})</h3><div class="grid2"><div>${fin.slice(0, 20).map(tarj).join('')}</div></div>`;
 }
 function bindCurso() {
