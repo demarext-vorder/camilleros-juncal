@@ -21,7 +21,7 @@ m = open(MAN, encoding='utf-8').read()
 perms = [
     'android.permission.INTERNET', 'android.permission.CAMERA', 'android.permission.FLASHLIGHT',
     'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'android.permission.POST_NOTIFICATIONS',
-    'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
+    'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_DATA_SYNC', 'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
 ]
 add = ''.join(f'    <uses-permission android:name="{p}" />\n' for p in perms if p not in m)
 m = m.replace('<application', add + '    <uses-feature android:name="android.hardware.camera" android:required="false" />\n\n    <application', 1) if '<uses-feature android:name="android.hardware.camera"' not in m else m.replace('<application', add + '    <application', 1)

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
 import android.provider.Settings;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
@@ -97,6 +98,42 @@ public class ApkUpdaterPlugin extends Plugin {
             call.resolve(o);
         } catch (Exception e) {
             call.reject(e.getMessage() == null ? "No se pudo abrir el instalador" : e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void estadoPermisos(PluginCall call) {
+        Context c = getContext();
+        JSObject o = new JSObject();
+        PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+        o.put("bateria", pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName()));
+        o.put("instalar", Build.VERSION.SDK_INT < 26 || c.getPackageManager().canRequestPackageInstalls());
+        call.resolve(o);
+    }
+
+    @PluginMethod
+    public void pedirBateria(PluginCall call) {
+        try {
+            Context c = getContext();
+            Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + c.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "No se pudo abrir el ajuste" : e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void pedirInstalar(PluginCall call) {
+        try {
+            Context c = getContext();
+            Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + c.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "No se pudo abrir el ajuste" : e.getMessage());
         }
     }
 }

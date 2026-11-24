@@ -216,6 +216,7 @@ function render(soft) {
   const ae = document.activeElement;
   if (soft && ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && app.contains(ae)) return; // no pisar lo que se está escribiendo
   if (S.intro) return vistaIntro(app);
+  if (S.perm && NATIVE && !S.demo) return vistaPermisos(app);
   if (!S.demo && NATIVE && !S.server) return vistaServidor(app);
   if (!S.token || !S.user) return vistaLogin(app);
   const rol = S.user.rol;
@@ -311,6 +312,42 @@ const SLIDES = [
   { ico: '🧾 → 📷 → ✅', t: 'Primero, verificá al paciente', d: 'Escaneá la pulsera (código de barras o QR). Si no es el paciente de la orden, la app te frena antes de que lo retires.' },
   { ico: '📍 → 📷 → 📝', t: 'Entregá y dejá tu aviso', d: 'Escaneá el QR del lugar de destino, sumá una nota sobre el paciente y finalizá. Queda todo registrado con horarios.' },
 ];
+
+/* ---------- Permisos (primer inicio) ---------- */
+const PERMS = [
+  { k: 'notif', ico: 'bell', t: 'Notificaciones', why: 'Para avisarte al instante cuando el conmutador emite un traslado, incluso con el teléfono bloqueado.' },
+  { k: 'cam', ico: 'camera', t: 'Cámara', why: 'Para escanear la pulsera del paciente y el QR del destino.' },
+  { k: 'bat', ico: 'gear', t: 'Batería sin restricciones', why: 'Evita que Android “duerma” la app y se pierdan avisos. Es clave para recibir traslados con la pantalla apagada.' },
+  { k: 'inst', ico: 'folder', t: 'Instalar actualizaciones', why: 'Permite actualizar la app desde adentro cuando haya una versión nueva, sin buscar links.' },
+];
+async function estadoPerm() {
+  const r = { notif: false, cam: false, bat: false, inst: false };
+  try { r.notif = (await plug('LocalNotifications').checkPermissions()).display === 'granted'; } catch {}
+  try { r.cam = (await plug('BarcodeScanner').checkPermissions()).camera === 'granted'; } catch {}
+  try { const e = await plug('ApkUpdater').estadoPermisos(); r.bat = e.bateria; r.inst = e.instalar; } catch {}
+  return r;
+}
+async function pedirPerm(k) {
+  try {
+    if (k === 'notif') await plug('LocalNotifications').requestPermissions();
+    else if (k === 'cam') await plug('BarcodeScanner').requestPermissions();
+    else if (k === 'bat') await plug('ApkUpdater').pedirBateria();
+    else if (k === 'inst') await plug('ApkUpdater').pedirInstalar();
+  } catch (e) { toast('No se pudo abrir el permiso'); }
+}
+async function vistaPermisos(app) {
+  const est = S.permEst || (S.permEst = await estadoPerm());
+  const todos = Object.values(est).every(Boolean);
+  app.innerHTML = `<div class="intro perm"><div class="perm-h"><img src="logo.svg" alt=""><h1>Permisos de la app</h1><p>Para que no pierdas ningún aviso, activá estos permisos. Podés cambiarlos después desde los ajustes del teléfono.</p></div>
+    <div class="perm-l">${PERMS.map((p) => `<div class="card perm-i ${est[p.k] ? 'ok' : ''}"><div class="upd-ico">${ICON(p.ico)}</div><div class="perm-t"><b>${p.t}</b><small>${p.why}</small></div>
+      ${est[p.k] ? `<span class="perm-ok">${ICON('check')}</span>` : `<button class="btn" data-perm="${p.k}">Permitir</button>`}</div>`).join('')}
+      <div class="hint" style="text-align:center">Tip: mantené el volumen de notificaciones alto y excluí la app del modo “No molestar”.</div></div>
+    <div class="perm-f"><button class="btn big" id="perm-go">${todos ? 'Continuar' : 'Continuar de todos modos'}</button></div></div>`;
+  app.querySelectorAll('[data-perm]').forEach((b) => (b.onclick = async () => { await pedirPerm(b.dataset.perm); S.permEst = null; render(); }));
+  $('#perm-go').onclick = () => { LS.set('cj_perm', '1'); S.perm = false; S.permEst = null; render(); };
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.perm) { S.permEst = null; render(); } });
+
 function vistaIntro(app) {
   const i = S.introIdx, sl = SLIDES[i], ult = i === SLIDES.length - 1;
   app.innerHTML = `<div class="intro"><button class="link intro-skip" id="i-skip">${ult ? '' : 'Saltar'}</button>
@@ -577,5 +614,6 @@ setInterval(() => { if (S.user && !document.querySelector('.modal-bg')) cargar()
     try { S.user = await api('/me'); await iniciarSesion(); } catch { S.token = null; }
   }
   if (!S.token && !LS.get('cj_intro')) S.intro = true;
+  if (NATIVE && !LS.get('cj_perm')) S.perm = true;
   render();
 })();
