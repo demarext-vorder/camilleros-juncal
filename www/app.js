@@ -351,7 +351,7 @@ async function vistaPermisos(app) {
       <div class="hint" style="text-align:center">Tip: mantené el volumen de notificaciones alto y excluí la app del modo “No molestar”.</div></div>
     <div class="perm-f"><button class="btn big" id="perm-go">${todos ? 'Continuar' : 'Continuar de todos modos'}</button></div></div>`;
   app.querySelectorAll('[data-perm]').forEach((b) => (b.onclick = async () => { await pedirPerm(b.dataset.perm); S.permEst = null; render(); }));
-  $('#perm-go').onclick = () => { LS.set('cj_perm', '1'); S.perm = false; S.permEst = null; render(); };
+  $('#perm-go').onclick = () => { LS.set('cj_perm', '1'); S.perm = false; S.permEst = null; render(); setTimeout(() => Upd.check(), 800); };
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.perm) { S.permEst = null; render(); } });
 
