@@ -229,8 +229,9 @@ function render(soft) {
   if (rol === 'camillero') vistaCamillero(app); else vistaDespacho(app);
   contar();
 }
+const AV = (c = 'av-s') => `<img class="${c}" src="avatar.svg" alt="">`;
 function header(sub) {
-  return `<div class="hdr"><img src="logo.svg" alt=""><div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline">${live()}</span></span></div>
+  return `<div class="hdr">${S.user && S.user.rol === 'camillero' ? AV('av-h') : '<img src="logo.svg" alt="">'}<div class="t"><b>Camilleros Juncal</b><span class="who">${esc(sub)} <span id="conn" style="display:inline">${live()}</span></span></div>
   <button class="iconbtn" id="menu" aria-label="Menú">⋮</button></div>`;
 }
 function bindMenu() {
@@ -302,7 +303,7 @@ async function iniciarDemo(rol, opts = {}) {
 }
 function elegirDemo() {
   modal(`<h3>🎬 Probar la demo</h3><p class="hint">Funciona sin servidor, con datos de ejemplo. ¿Cómo querés verla?</p>
-    <button class="btn big" id="d-cam">👷 Soy camillero</button><div style="height:10px"></div>
+    <button class="btn big" id="d-cam">${AV()} Soy camillero</button><div style="height:10px"></div>
     <button class="btn big navy" id="d-con">☎️ Soy conmutador</button>
     <p class="hint" style="margin-top:12px">Tip: abrí la demo en dos pestañas, una como conmutador y otra como camillero, y vas a ver cómo se comunican.</p>
     <button class="link" style="width:100%" onclick="cerrarModal()">Cancelar</button>`, () => {
@@ -387,7 +388,7 @@ function cardTraslado(t, opts = {}) {
     <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>`}
     <div class="pname">${esc(t.paciente)}</div><div class="meta">DNI ${esc(t.dni)} · Cama ${esc(t.cama || '—')}</div>
     ${opts.compact ? '' : `<div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>`}
-    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
+    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">${AV()} Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
 }
 function vistaCamillero(app) {
   const act = miActivo();
@@ -402,7 +403,7 @@ function vistaCamillero(app) {
   } else if (S.tab === 'mio') body = vistaMiTraslado(act);
   else body = S.hist.length ? S.hist.map((t) => `<div class="card"><div class="row"><b>${esc(t.paciente)}</b><span class="sp"></span><span class="meta">${hora(t.completado_en)}</span></div><div class="meta">${esc(t.origen || '')} → <b>${esc(t.destino)}</b></div>${t.nota_final ? `<div class="meta">📝 ${esc(t.nota_final)}</div>` : ''}<div class="meta">Duración: ${Math.max(1, Math.round((new Date(t.completado_en) - new Date(t.aceptado_en)) / 60000))} min</div></div>`).join('')
     : `<div class="empty">${bigIco('folder')}Todavía no hiciste traslados.</div>`;
-  app.innerHTML = `${header('👷 ' + S.user.nombre)}<div class="wrap">${body}</div>
+  app.innerHTML = `${header(S.user.nombre)}<div class="wrap">${body}</div>
     <nav class="tabs"><button data-t="pend" class="${S.tab === 'pend' ? 'on' : ''}">${ICON('list')}Pendientes${pend.length && !act ? `<i class="bd">${pend.length}</i>` : ''}</button>
     <button data-t="mio" class="${S.tab === 'mio' ? 'on' : ''}">${ICON('bed')}Mi traslado${act ? '<i class="bd">1</i>' : ''}</button>
     <button data-t="hist" class="${S.tab === 'hist' ? 'on' : ''}">${ICON('clock')}Historial</button></nav>`;
@@ -509,7 +510,7 @@ function bindNuevo() {
 }
 function vistaCurso(activos) {
   const fin = S.traslados.filter((t) => ['COMPLETADA', 'CANCELADA'].includes(t.estado));
-  const tarj = (t) => cardTraslado(t, { extra: `<div class="row" style="margin-top:8px"><span class="meta">${t.camillero ? '' : '<b style="color:#8a5a00">👷 Esperando camillero…</b>'}${t.aceptado_en ? 'Aceptó ' + hora(t.aceptado_en) : ''}</span><span class="sp"></span>
+  const tarj = (t) => cardTraslado(t, { extra: `<div class="row" style="margin-top:8px"><span class="meta">${t.camillero ? '' : '<b style="color:#8a5a00">${AV()} Esperando camillero…</b>'}${t.aceptado_en ? 'Aceptó ' + hora(t.aceptado_en) : ''}</span><span class="sp"></span>
     <button class="btn sm ghost" data-ev="${t.id}">Detalle</button>${['EMITIDA', 'ACEPTADA', 'EN_TRASLADO'].includes(t.estado) ? `<button class="btn sm red" data-cn="${t.id}">Cancelar</button>` : ''}</div>` });
   return `${tiles()}<h3 style="margin:4px 0 10px">En curso (${activos.length})</h3><div class="grid2"><div>${activos.filter((_, i) => i % 2 === 0).map(tarj).join('')}</div><div>${activos.filter((_, i) => i % 2).map(tarj).join('')}</div></div>
     ${activos.length ? '' : `<div class="empty">${bigIco('coffee')}No hay traslados en curso.</div>`}
