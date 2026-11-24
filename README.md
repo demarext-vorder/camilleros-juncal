@@ -69,9 +69,5 @@ La pulsera se reconoce si el código leído coincide con `pulsera`, `dni` o `his
 - El APK es de tipo *debug* (instalable directo). Para publicar en Play Store hay que firmarlo con keystore propia.
 
 ## Actualización automática de la app
-Cuando se publica un release nuevo (cada push a `main` compila uno), las apps abiertas muestran una ventana flotante **“Nueva versión disponible”**; el botón *Actualizar ahora* descarga el APK dentro de la app y abre el instalador de Android.
-El APK se baja a través del servidor, así el repositorio puede seguir privado. Configurá en el servidor:
-- `GITHUB_TOKEN`: token de GitHub de solo lectura (fine-grained, permiso *Contents: Read* sobre este repositorio).
-- `GITHUB_REPO` (opcional, por defecto `demarext-vorder/camilleros-juncal`).
-
-La primera vez, Android pide permitir “instalar apps desconocidas” para Camilleros Juncal. El APK se firma siempre con `resources/debug.keystore`, por eso las versiones se instalan una encima de otra sin desinstalar.
+Cada push a `main` compila y publica un release. Las apps abiertas consultan el último release de GitHub (el repositorio debe ser **público**) y muestran una ventana flotante **“Nueva versión disponible”**; *Actualizar ahora* descarga el APK dentro de la app y abre el instalador de Android. No usa el servidor de traslados.
+La primera vez Android pide permitir “instalar apps desconocidas” para Camilleros Juncal. El APK se firma siempre con `resources/debug.keystore`, por eso las versiones se instalan una encima de otra.

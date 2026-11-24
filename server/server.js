@@ -402,37 +402,6 @@ app.get('/api/estadisticas', auth('conmutador', 'admin'), (req, res) => {
 });
 
 
-/* ---------- Actualizaciones de la app (toma el ultimo release de GitHub; el repo puede ser privado) ---------- */
-const GH_REPO = process.env.GITHUB_REPO || 'demarext-vorder/camilleros-juncal';
-const GH_TOKEN = process.env.GITHUB_TOKEN || '';
-const ghHeaders = (extra = {}) => ({ 'User-Agent': 'camilleros-juncal-server', Accept: 'application/vnd.github+json', ...(GH_TOKEN ? { Authorization: 'Bearer ' + GH_TOKEN } : {}), ...extra });
-let ultimoRelease = { t: 0, v: null };
-async function releaseActual() {
-  if (Date.now() - ultimoRelease.t < 60000) return ultimoRelease.v;
-  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/releases/latest`, { headers: ghHeaders() });
-  if (!r.ok) throw new Error('GitHub ' + r.status);
-  const j = await r.json();
-  const asset = (j.assets || []).find((a) => /\.apk$/i.test(a.name));
-  const code = parseInt(String(j.tag_name || '').replace(/\D/g, ''), 10);
-  if (!asset || !code) throw new Error('Release sin APK');
-  ultimoRelease = { t: Date.now(), v: { code, version: j.name || j.tag_name, notas: j.body || '', size: asset.size, asset_id: asset.id, fecha: j.published_at } };
-  return ultimoRelease.v;
-}
-app.get('/api/app/version', auth(), async (req, res) => {
-  try { const { asset_id, ...v } = await releaseActual(); res.json(v); }
-  catch (e) { res.status(502).json({ error: 'No se pudo consultar la última versión (' + e.message + ')' }); }
-});
-app.get('/api/app/apk', auth(), async (req, res) => {
-  try {
-    const v = await releaseActual();
-    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/releases/assets/${v.asset_id}`, { headers: ghHeaders({ Accept: 'application/octet-stream' }), redirect: 'follow' });
-    if (!r.ok || !r.body) throw new Error('GitHub ' + r.status);
-    res.set({ 'Content-Type': 'application/vnd.android.package-archive', 'Content-Length': v.size, 'Content-Disposition': 'attachment; filename="Camilleros-Juncal.apk"' });
-    const { Readable } = require('node:stream');
-    Readable.fromWeb(r.body).on('error', () => res.destroy()).pipe(res);
-  } catch (e) { if (!res.headersSent) res.status(502).json({ error: 'No se pudo bajar la actualización (' + e.message + ')' }); else res.destroy(); }
-});
-
 app.get('/api/health', (req, res) => res.json({ ok: true, hora: now() }));
 app.use(express.static(path.join(__dirname, '..', 'www')));
 

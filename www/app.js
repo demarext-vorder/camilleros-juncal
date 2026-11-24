@@ -558,14 +558,21 @@ async function bindAdmin() {
 
 
 /* ---------- Actualizaciones de la app (ventana flotante) ---------- */
+const REPO = 'demarext-vorder/camilleros-juncal';
 const Upd = {
   omitida: 0, abierta: false,
   async check() {
-    if (!NATIVE || S.demo || !S.token || !S.server || this.abierta) return;
+    if (!NATIVE || S.demo || S.perm || this.abierta) return;
     try {
       const P = plug('ApkUpdater');
       const cur = (await P.getVersion()).code;
-      const v = await api('/app/version');
+      const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) return;
+      const j = await r.json();
+      const a = (j.assets || []).find((x) => /\.apk$/i.test(x.name));
+      const code = parseInt(String(j.tag_name || '').replace(/\D/g, ''), 10);
+      if (!a || !code) return;
+      const v = { code, version: j.name || j.tag_name, size: a.size, url: a.browser_download_url };
       if (v.code > cur && v.code !== this.omitida) this.mostrar(v);
     } catch { /* sin conexión o repo sin release: se reintenta luego */ }
   },
@@ -593,7 +600,7 @@ const Upd = {
         if (!bajado) {
           bar.hidden = false; $('.upd-bar i', el).style.width = '0%'; go.textContent = 'Descargando…';
           const h = await P.addListener('progress', (e) => { $('.upd-bar i', el).style.width = e.pct + '%'; go.textContent = 'Descargando… ' + e.pct + '%'; });
-          try { await P.download({ url: S.server + '/api/app/apk', token: S.token }); } finally { h.remove(); }
+          try { await P.download({ url: v.url }); } finally { h.remove(); }
           bajado = true;
         }
         go.textContent = 'Instalar'; await instalar();
@@ -615,5 +622,6 @@ setInterval(() => { if (S.user && !document.querySelector('.modal-bg')) cargar()
   }
   if (!S.token && !LS.get('cj_intro')) S.intro = true;
   if (NATIVE && !LS.get('cj_perm')) S.perm = true;
+  setTimeout(() => Upd.check(), 3000);
   render();
 })();
