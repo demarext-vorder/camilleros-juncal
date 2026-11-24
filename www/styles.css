@@ -194,3 +194,13 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 
 .stat b small{font-size:14px;color:var(--soft);font-weight:600}.stat span{display:block}
 @media(max-height:720px){.steps{margin:0 0 8px}.steps div i{margin-bottom:3px}.steps div{font-size:11px}.big-instr{padding:8px 14px;margin-bottom:8px}.big-instr b{font-size:20px;margin-top:2px}.btn.big{padding-top:14px;padding-bottom:14px}.ok{padding:6px 12px;margin-bottom:8px}.wrap{padding-top:8px}}
+
+.more{margin-top:8px}.more summary{color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;list-style:none;padding:2px 0}.more summary::-webkit-details-marker{display:none}.more[open] summary{margin-bottom:6px}
+.card .pname{font-size:19px}
+.upd{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(96px + env(safe-area-inset-bottom));background:rgba(36,52,71,.28);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:fadein .3s}
+.upd-card{width:100%;max-width:420px;background:var(--glass);background:rgba(240,244,250,.92);border:1px solid #ffffffc0;border-radius:28px;padding:18px;box-shadow:var(--raised);display:grid;grid-template-columns:52px 1fr;gap:6px 14px;align-items:center;animation:sheet .4s cubic-bezier(.2,.9,.3,1.2)}
+.upd-ico{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--bg);box-shadow:var(--raised-s);color:var(--blue)}.upd-ico .ico{width:28px;height:28px}
+.upd-tx b{display:block;font-size:17px}.upd-tx small{color:var(--soft)}
+.upd-bar,.upd-msg,.upd-btns{grid-column:1/-1}.upd-bar{height:10px;border-radius:6px;background:var(--bg);box-shadow:var(--inset-s);overflow:hidden}.upd-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .2s}
+.upd-msg{font-size:13px;color:var(--soft)}.upd-btns{display:flex;flex-direction:column;gap:2px;align-items:center}.upd-btns .btn{width:100%;min-height:56px;font-size:17px}
+@keyframes fadein{from{opacity:0}to{opacity:1}}

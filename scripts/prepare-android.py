@@ -38,6 +38,37 @@ if 'AndroidForegroundService' not in m:
 m = m.replace('<activity', '<activity\n            android:showWhenLocked="true"\n            android:turnScreenOn="true"', 1) if 'showWhenLocked' not in m else m
 open(MAN, 'w', encoding='utf-8').write(m)
 
+# 2b) Actualizador de APK dentro de la app (plugin propio + FileProvider)
+JAVA = os.path.join(AND, 'app/src/main/java/ar/com/juncal/camilleros')
+os.makedirs(JAVA, exist_ok=True)
+shutil.copy(os.path.join(ROOT, 'scripts/android/ApkUpdaterPlugin.java'), JAVA)
+shutil.copy(os.path.join(ROOT, 'scripts/android/UpdateFileProvider.java'), JAVA)
+os.makedirs(os.path.join(RES, 'xml'), exist_ok=True)
+shutil.copy(os.path.join(ROOT, 'scripts/android/update_paths.xml'), os.path.join(RES, 'xml/update_paths.xml'))
+main_java = os.path.join(JAVA, 'MainActivity.java')
+open(main_java, 'w', encoding='utf-8').write("""package ar.com.juncal.camilleros;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(ApkUpdaterPlugin.class);
+        super.onCreate(savedInstanceState)
+    }
+}
+""".replace("super.onCreate(savedInstanceState)\n", "super.onCreate(savedInstanceState);\n"))
+m = open(MAN, encoding='utf-8').read()
+if 'REQUEST_INSTALL_PACKAGES' not in m:
+    m = m.replace('<application', '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    <application', 1)
+if 'updatefp' not in m:
+    m = m.replace('</application>', """        <provider android:name="ar.com.juncal.camilleros.UpdateFileProvider" android:authorities="${applicationId}.updatefp" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
+        </provider>
+    </application>""", 1)
+open(MAN, 'w', encoding='utf-8').write(m)
+
 # 3) Gradle: data binding (lo pide el plugin de escaneo) + version
 g = open(GRADLE, encoding='utf-8').read()
 if 'dataBinding' not in g:

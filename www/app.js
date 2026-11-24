@@ -282,6 +282,7 @@ async function iniciarSesion() {
   if (!S.demo) await Nat.init();
   conectarWS(); await cargar();
   if (!S.demo && S.user.rol === 'camillero' && S.user.en_turno) Nat.servicio(true);
+  setTimeout(() => Upd.check(), 2500);
 }
 async function iniciarDemo(rol, opts = {}) {
   S.demo = true; S.intro = false; S.tab = null; S.finalizado = null; S.nota = ''; S.scanErr = '';
@@ -336,7 +337,7 @@ function cardTraslado(t, opts = {}) {
     <span class="pill e-${t.estado}">${ESTADO[t.estado]}</span><span class="sp"></span><span class="meta">${hace(t.emitido_en)}</span></div>`}
     <div class="pname">${esc(t.paciente)}</div><div class="meta">DNI ${esc(t.dni)} · Cama ${esc(t.cama || '—')}</div>
     ${opts.compact ? '' : `<div class="route"><div class="rl"><i></i><u></u><i class="d"></i></div><div class="rt"><div><small>Retirar de</small><b>${esc(t.origen || '—')}</b></div><div><small>Llevar a</small><b>${esc(t.destino)}</b></div></div></div>`}
-    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.extra || ''}</div>`;
+    ${opts.compact ? `<div class="meta"><b>Llevar a:</b> ${esc(t.destino)}</div>` : ''}${opts.compact ? '<details class="more"><summary>Ver detalles</summary>' : ''}<div class="chips">${flags}</div>${t.camillero ? `<div class="resp">👷 Camillero responsable: <b>${esc(t.camillero)}</b></div>` : ''}${t.nota_emision ? `<div class="meta">📝 ${esc(t.nota_emision)}</div>` : ''}${opts.compact ? '</details>' : ''}${opts.extra || ''}</div>`;
 }
 function vistaCamillero(app) {
   const act = miActivo();
@@ -368,10 +369,10 @@ function vistaMiTraslado(t) {
   const paso = t.estado === 'ACEPTADA' ? 1 : 2;
   const steps = `<div class="steps"><div class="done"><i></i>Aceptado</div><div class="${paso === 1 ? 'cur' : 'done'}"><i></i>Paciente</div><div class="${paso === 2 ? 'cur' : ''}"><i></i>Destino</div></div>`;
   const err = S.scanErr ? `<div class="err">${esc(S.scanErr)}</div>` : '';
-  if (paso === 1) return `${steps}<div class="big-instr"><small>Paso 1 · Buscar al paciente</small><b>${esc(t.origen || '—')}</b></div>${err}
+  if (paso === 1) return `${steps}<div class="big-instr"><small>Paso 1 · Buscar al paciente</small><b>${esc(t.origen || '—')}</b></div>
+    ${cardTraslado(t, { compact: true })}${err}
     <button class="btn big green" id="scan-pac">${ICON('camera')} ESCANEAR PULSERA</button>
-    <div class="row" style="justify-content:center;margin:2px 0 10px"><button class="link" id="man-pac">Ingresar código a mano</button><button class="link" id="liberar" style="color:#9b1c1c">Devolver traslado</button></div>
-    ${cardTraslado(t, { compact: true })}`;
+    <div class="row" style="justify-content:center;margin:2px 0 10px"><button class="link" id="man-pac">Ingresar código a mano</button><button class="link" id="liberar" style="color:#9b1c1c">Devolver traslado</button></div>`;
   return `${steps}<div class="ok">✔ Paciente verificado: ${esc(t.paciente)}</div><div class="big-instr"><small>Paso 2 · Llevar a</small><b>${esc(t.destino)}</b></div>${err}
     <button class="btn big green" id="scan-dest">${ICON('scan')} ESCANEAR QR DEL DESTINO</button>
     <div class="row" style="justify-content:center;margin:2px 0 10px"><button class="link" id="man-dest">Ingresar código a mano</button></div>
@@ -517,6 +518,54 @@ async function bindAdmin() {
     };
   }
 }
+
+
+/* ---------- Actualizaciones de la app (ventana flotante) ---------- */
+const Upd = {
+  omitida: 0, abierta: false,
+  async check() {
+    if (!NATIVE || S.demo || !S.token || !S.server || this.abierta) return;
+    try {
+      const P = plug('ApkUpdater');
+      const cur = (await P.getVersion()).code;
+      const v = await api('/app/version');
+      if (v.code > cur && v.code !== this.omitida) this.mostrar(v);
+    } catch { /* sin conexión o repo sin release: se reintenta luego */ }
+  },
+  mostrar(v) {
+    this.abierta = true;
+    const el = document.createElement('div'); el.id = 'upd'; el.className = 'upd';
+    const mb = v.size ? ` · ${(v.size / 1048576).toFixed(1)} MB` : '';
+    el.innerHTML = `<div class="upd-card"><div class="upd-ico">${ICON('bell')}</div><div class="upd-tx"><b>Nueva versión disponible</b><small>Camilleros Juncal ${esc(String(v.version).replace(/^Camilleros Juncal\s*/, ''))}${mb}</small></div>
+      <div class="upd-bar" hidden><i></i></div><div class="upd-msg" hidden></div>
+      <div class="upd-btns"><button class="btn big" id="upd-go">Actualizar ahora</button><button class="link" id="upd-later">Más tarde</button></div></div>`;
+    document.body.appendChild(el);
+    const cerrar = () => { el.remove(); this.abierta = false; };
+    $('#upd-later', el).onclick = () => { this.omitida = v.code; cerrar(); };
+    const go = $('#upd-go', el), bar = $('.upd-bar', el), msg = $('.upd-msg', el), P = plug('ApkUpdater');
+    let bajado = false;
+    const say = (t) => { msg.hidden = false; msg.textContent = t; };
+    const instalar = async () => {
+      const r = await P.install();
+      if (r.permiso) { say('Habilitá “Permitir desde esta fuente” y volvé a la app; después tocá Instalar.'); go.disabled = false; go.textContent = 'Instalar'; }
+      else say('Abriendo el instalador de Android…');
+    };
+    go.onclick = async () => {
+      go.disabled = true;
+      try {
+        if (!bajado) {
+          bar.hidden = false; $('.upd-bar i', el).style.width = '0%'; go.textContent = 'Descargando…';
+          const h = await P.addListener('progress', (e) => { $('.upd-bar i', el).style.width = e.pct + '%'; go.textContent = 'Descargando… ' + e.pct + '%'; });
+          try { await P.download({ url: S.server + '/api/app/apk', token: S.token }); } finally { h.remove(); }
+          bajado = true;
+        }
+        go.textContent = 'Instalar'; await instalar();
+      } catch (e) { say('No se pudo actualizar: ' + (e.message || e)); go.disabled = false; go.textContent = bajado ? 'Instalar' : 'Reintentar'; }
+    };
+  },
+};
+setInterval(() => Upd.check(), 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Upd.check(); });
 
 /* ---------- Arranque ---------- */
 setInterval(() => { if (S.user && !document.querySelector('.modal-bg')) cargar(); }, 20000);

@@ -33,6 +33,11 @@ jobs:
           VERSION_CODE=${{ github.run_number }} VERSION_NAME=1.0.${{ github.run_number }} python3 scripts/prepare-android.py
           npx cap sync android
 
+      - name: Firma estable (para poder actualizar la app encima de la anterior)
+        run: |
+          mkdir -p ~/.android
+          cp resources/debug.keystore ~/.android/debug.keystore
+
       - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon

@@ -67,3 +67,11 @@ La pulsera se reconoce si el código leído coincide con `pulsera`, `dni` o `his
 - **Avisos con el celular bloqueado:** la app mantiene un servicio en segundo plano mientras el camillero está “En turno”. En el celular conviene: *Ajustes → Apps → Camilleros Juncal → Batería → Sin restricciones*, y permitir notificaciones. Si en algún modelo se cortan, la mejora es sumar notificaciones push (Firebase).
 - Seguridad: usar HTTPS (proxy inverso) si el servidor sale a internet. En red interna `http` funciona.
 - El APK es de tipo *debug* (instalable directo). Para publicar en Play Store hay que firmarlo con keystore propia.
+
+## Actualización automática de la app
+Cuando se publica un release nuevo (cada push a `main` compila uno), las apps abiertas muestran una ventana flotante **“Nueva versión disponible”**; el botón *Actualizar ahora* descarga el APK dentro de la app y abre el instalador de Android.
+El APK se baja a través del servidor, así el repositorio puede seguir privado. Configurá en el servidor:
+- `GITHUB_TOKEN`: token de GitHub de solo lectura (fine-grained, permiso *Contents: Read* sobre este repositorio).
+- `GITHUB_REPO` (opcional, por defecto `demarext-vorder/camilleros-juncal`).
+
+La primera vez, Android pide permitir “instalar apps desconocidas” para Camilleros Juncal. El APK se firma siempre con `resources/debug.keystore`, por eso las versiones se instalan una encima de otra sin desinstalar.
