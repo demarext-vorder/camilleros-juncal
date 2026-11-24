@@ -3,7 +3,13 @@
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-const plug = (n) => (NATIVE ? window.Capacitor.registerPlugin(n) : null);
+const plug = (n) => {
+  if (!NATIVE) return null;
+  const C = window.Capacitor;
+  if (typeof C.registerPlugin === 'function') return C.registerPlugin(n);
+  const P = C.Plugins && C.Plugins[n];
+  return P || new Proxy({}, { get: () => async () => { throw new Error('Plugin ' + n + ' no disponible'); } });
+};
 const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: (k) => { try { localStorage.removeItem(k); } catch {} } };
 
 const S = {
@@ -606,8 +612,9 @@ const Upd = {
       try {
         if (!bajado) {
           bar.hidden = false; $('.upd-bar i', el).style.width = '0%'; go.textContent = 'Descargando…';
-          const h = await P.addListener('progress', (e) => { $('.upd-bar i', el).style.width = e.pct + '%'; go.textContent = 'Descargando… ' + e.pct + '%'; });
-          try { await P.download({ url: v.url }); } finally { h.remove(); }
+          let h = null;
+          try { h = await P.addListener('progress', (e) => { $('.upd-bar i', el).style.width = e.pct + '%'; go.textContent = 'Descargando… ' + e.pct + '%'; }); } catch {}
+          try { await P.download({ url: v.url }); } finally { try { h && h.remove(); } catch {} }
           bajado = true;
         }
         go.textContent = 'Instalar'; await instalar();
